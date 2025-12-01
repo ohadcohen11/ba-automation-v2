@@ -15,7 +15,7 @@ interface ConfigurationPanelProps {
 const VERTICALS = {
   dating: {
     name: "Dating",
-    ids: [76, 82, 100048, 100329, 100521, 100500],
+    ids: [76],
   },
   // Add more verticals here as needed
 };
