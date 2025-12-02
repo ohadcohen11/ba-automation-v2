@@ -10,8 +10,10 @@ interface DecisionTreeViewProps {
 
 export default function DecisionTreeView({ results }: DecisionTreeViewProps) {
   const mermaidRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [activePath, setActivePath] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [zoom, setZoom] = useState(1);
 
   // Initialize mermaid only once
   useEffect(() => {
@@ -401,8 +403,60 @@ flowchart TB
         </div>
       </div>
 
-      <div className="overflow-x-auto bg-white rounded-lg border border-gray-200 p-6" style={{ minHeight: "600px" }}>
-        <div ref={mermaidRef} style={{ width: '100%', minHeight: '500px' }} />
+      <div className="mb-4 flex items-center gap-4 bg-gray-50 rounded-lg p-3 border border-gray-200">
+        <span className="text-sm font-medium text-gray-700">Zoom:</span>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setZoom((prev) => Math.max(0.3, prev - 0.1))}
+            className="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={zoom <= 0.3}
+          >
+            −
+          </button>
+          <span className="px-3 py-1 text-sm font-mono text-gray-700 min-w-[60px] text-center">
+            {(zoom * 100).toFixed(0)}%
+          </span>
+          <button
+            onClick={() => setZoom(1)}
+            className="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+          >
+            Reset
+          </button>
+          <button
+            onClick={() => setZoom((prev) => Math.min(3, prev + 0.1))}
+            className="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={zoom >= 3}
+          >
+            +
+          </button>
+        </div>
+        <span className="text-xs text-gray-500 ml-auto">
+          Hold Ctrl/Cmd + scroll to zoom
+        </span>
+      </div>
+
+      <div
+        ref={containerRef}
+        className="overflow-auto bg-white rounded-lg border border-gray-200 p-6"
+        style={{ minHeight: "600px", maxHeight: "800px" }}
+        onWheel={(e) => {
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.1 : 0.1;
+            setZoom((prev) => Math.min(Math.max(0.3, prev + delta), 3));
+          }
+        }}
+      >
+        <div
+          ref={mermaidRef}
+          style={{
+            width: '100%',
+            minHeight: '500px',
+            transform: `scale(${zoom})`,
+            transformOrigin: 'top left',
+            transition: 'transform 0.1s ease-out',
+          }}
+        />
       </div>
 
       <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
