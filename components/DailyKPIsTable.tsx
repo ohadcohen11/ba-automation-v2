@@ -42,8 +42,63 @@ const isLowerBetter = (metric: string) => {
   return ["cpc", "cpal", "cost"].includes(metric);
 };
 
-// Helper to calculate change indicator
-const ChangeIndicator = ({ current, baseline, metric }: { current: number; baseline: number; metric: string }) => {
+// Calculate statistical significance threshold for proportion-based metrics
+const calculateThreshold = (baseline: number, sampleSize: number, confidenceLevel: number = 1.96) => {
+  // baseline should be a proportion (0-1 for percentages, or raw value)
+  // Standard Error: SE = sqrt(P * (1-P) / n)
+  const p = baseline / 100; // Convert percentage to proportion
+  const se = Math.sqrt((p * (1 - p)) / sampleSize);
+  const margin = confidenceLevel * se * 100; // Convert back to percentage
+
+  return {
+    lowerBound: Math.max(0, baseline - margin),
+    upperBound: Math.min(100, baseline + margin),
+    margin: margin,
+  };
+};
+
+// Check if value is statistically significant (outside threshold)
+const isStatisticallySignificant = (
+  current: number,
+  baseline: number,
+  sampleSize: number,
+  metricType: string,
+  minimumSampleSize: number = 20
+) => {
+  // Skip if sample size too small
+  if (sampleSize < minimumSampleSize) return { significant: false, reason: "low_volume" };
+
+  // For proportion-based metrics (CVR, CTR, SCTR, COTAL, ROI as percentage)
+  if (["cvr", "ctr", "sctr", "cotal", "roi"].includes(metricType)) {
+    const threshold = calculateThreshold(baseline, sampleSize);
+    const isOutside = current < threshold.lowerBound || current > threshold.upperBound;
+    return {
+      significant: isOutside,
+      threshold,
+      reason: isOutside ? "outside_threshold" : "within_threshold",
+    };
+  }
+
+  // For count/volume metrics with zero check
+  if (["approved_leads"].includes(metricType) && current === 0 && sampleSize > 50) {
+    return { significant: true, reason: "zero_value", threshold: null };
+  }
+
+  return { significant: false, reason: "not_tested", threshold: null };
+};
+
+// Helper to calculate change indicator with statistical significance
+const ChangeIndicator = ({
+  current,
+  baseline,
+  metric,
+  sampleSize
+}: {
+  current: number;
+  baseline: number;
+  metric: string;
+  sampleSize: number;
+}) => {
   if (!baseline) return null;
 
   const changePercent = ((current - baseline) / baseline) * 100;
@@ -51,12 +106,30 @@ const ChangeIndicator = ({ current, baseline, metric }: { current: number; basel
   const lowerIsBetter = isLowerBetter(metric);
   const isGood = (isIncrease && !lowerIsBetter) || (!isIncrease && lowerIsBetter);
 
+  // Check statistical significance
+  const sigTest = isStatisticallySignificant(current, baseline, sampleSize, metric);
+
   if (Math.abs(changePercent) < 0.5) return null;
 
   return (
-    <div className={`flex items-center text-xs font-medium ml-2 ${isGood ? "text-green-600" : "text-red-600"}`}>
-      {isIncrease ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
-      <span className="ml-0.5">{isIncrease ? '+' : '-'}{Math.abs(changePercent).toFixed(1)}%</span>
+    <div className="flex flex-col ml-2 text-xs">
+      <div className={`flex items-center font-medium ${
+        sigTest.significant
+          ? (isGood ? "text-green-700" : "text-red-700 font-bold")
+          : (isGood ? "text-green-500" : "text-orange-500")
+      }`}>
+        {isIncrease ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+        <span className="ml-0.5">{isIncrease ? '+' : '-'}{Math.abs(changePercent).toFixed(1)}%</span>
+        {sigTest.significant && <span className="ml-1 text-[10px]">⚠️</span>}
+      </div>
+      {sigTest.threshold && (
+        <div className="text-[10px] text-gray-500 mt-0.5">
+          Range: {sigTest.threshold.lowerBound.toFixed(1)}-{sigTest.threshold.upperBound.toFixed(1)}%
+        </div>
+      )}
+      {sigTest.reason === "low_volume" && (
+        <div className="text-[10px] text-gray-400 mt-0.5">Low volume</div>
+      )}
     </div>
   );
 };
@@ -147,7 +220,7 @@ export default function DailyKPIsTable({ data, targetDate }: DailyKPIsTableProps
           return (
             <div className="text-right flex items-center justify-end">
               {(info.getValue() as number).toLocaleString()}
-              {isTarget && baselineAverages && <ChangeIndicator current={row.impressions} baseline={baselineAverages.impressions} metric="impressions" />}
+              {isTarget && baselineAverages && <ChangeIndicator current={row.impressions} baseline={baselineAverages.impressions} metric="impressions" sampleSize={row.impressions} />}
             </div>
           );
         },
@@ -161,7 +234,7 @@ export default function DailyKPIsTable({ data, targetDate }: DailyKPIsTableProps
           return (
             <div className="text-right flex items-center justify-end">
               {(info.getValue() as number).toLocaleString()}
-              {isTarget && baselineAverages && <ChangeIndicator current={row.clicks} baseline={baselineAverages.clicks} metric="clicks" />}
+              {isTarget && baselineAverages && <ChangeIndicator current={row.clicks} baseline={baselineAverages.clicks} metric="clicks" sampleSize={row.impressions} />}
             </div>
           );
         },
@@ -175,7 +248,7 @@ export default function DailyKPIsTable({ data, targetDate }: DailyKPIsTableProps
           return (
             <div className="text-right font-medium text-gray-900 flex items-center justify-end">
               ${(info.getValue() as number).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              {isTarget && baselineAverages && <ChangeIndicator current={row.cost} baseline={baselineAverages.cost} metric="cost" />}
+              {isTarget && baselineAverages && <ChangeIndicator current={row.cost} baseline={baselineAverages.cost} metric="cost" sampleSize={row.clicks} />}
             </div>
           );
         },
@@ -189,7 +262,7 @@ export default function DailyKPIsTable({ data, targetDate }: DailyKPIsTableProps
           return (
             <div className="text-right font-medium text-gray-900 flex items-center justify-end">
               ${(info.getValue() as number).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              {isTarget && baselineAverages && <ChangeIndicator current={row.revenue} baseline={baselineAverages.revenue} metric="revenue" />}
+              {isTarget && baselineAverages && <ChangeIndicator current={row.revenue} baseline={baselineAverages.revenue} metric="revenue" sampleSize={row.clicks} />}
             </div>
           );
         },
@@ -203,7 +276,7 @@ export default function DailyKPIsTable({ data, targetDate }: DailyKPIsTableProps
           return (
             <div className="text-right flex items-center justify-end">
               {(info.getValue() as number).toLocaleString()}
-              {isTarget && baselineAverages && <ChangeIndicator current={row.approved_leads} baseline={baselineAverages.approved_leads} metric="approved_leads" />}
+              {isTarget && baselineAverages && <ChangeIndicator current={row.approved_leads} baseline={baselineAverages.approved_leads} metric="approved_leads" sampleSize={row.clicks} />}
             </div>
           );
         },
@@ -217,7 +290,7 @@ export default function DailyKPIsTable({ data, targetDate }: DailyKPIsTableProps
           return (
             <div className="text-right text-gray-700 flex items-center justify-end">
               ${(info.getValue() as number).toFixed(2)}
-              {isTarget && baselineAverages && <ChangeIndicator current={row.cpc} baseline={baselineAverages.cpc} metric="cpc" />}
+              {isTarget && baselineAverages && <ChangeIndicator current={row.cpc} baseline={baselineAverages.cpc} metric="cpc" sampleSize={row.clicks} />}
             </div>
           );
         },
@@ -231,7 +304,7 @@ export default function DailyKPIsTable({ data, targetDate }: DailyKPIsTableProps
           return (
             <div className="text-right text-gray-700 flex items-center justify-end">
               ${(info.getValue() as number).toFixed(2)}
-              {isTarget && baselineAverages && <ChangeIndicator current={row.cpal} baseline={baselineAverages.cpal} metric="cpal" />}
+              {isTarget && baselineAverages && <ChangeIndicator current={row.cpal} baseline={baselineAverages.cpal} metric="cpal" sampleSize={row.approved_leads} />}
             </div>
           );
         },
@@ -246,7 +319,14 @@ export default function DailyKPIsTable({ data, targetDate }: DailyKPIsTableProps
           return (
             <div className={`text-right font-medium ${value > 100 ? "text-green-600" : "text-red-600"} flex items-center justify-end`}>
               {value.toFixed(2)}%
-              {isTarget && baselineAverages && <ChangeIndicator current={row.roi} baseline={baselineAverages.roi} metric="roi" />}
+              {isTarget && baselineAverages && (
+                <ChangeIndicator
+                  current={row.roi}
+                  baseline={baselineAverages.roi}
+                  metric="roi"
+                  sampleSize={row.approved_leads}
+                />
+              )}
             </div>
           );
         },
@@ -260,7 +340,14 @@ export default function DailyKPIsTable({ data, targetDate }: DailyKPIsTableProps
           return (
             <div className="text-right text-gray-700 flex items-center justify-end">
               {(info.getValue() as number).toFixed(2)}%
-              {isTarget && baselineAverages && <ChangeIndicator current={row.ctr} baseline={baselineAverages.ctr} metric="ctr" />}
+              {isTarget && baselineAverages && (
+                <ChangeIndicator
+                  current={row.ctr}
+                  baseline={baselineAverages.ctr}
+                  metric="ctr"
+                  sampleSize={row.impressions}
+                />
+              )}
             </div>
           );
         },
@@ -274,7 +361,14 @@ export default function DailyKPIsTable({ data, targetDate }: DailyKPIsTableProps
           return (
             <div className="text-right text-gray-700 flex items-center justify-end">
               {(info.getValue() as number).toFixed(2)}%
-              {isTarget && baselineAverages && <ChangeIndicator current={row.cvr} baseline={baselineAverages.cvr} metric="cvr" />}
+              {isTarget && baselineAverages && (
+                <ChangeIndicator
+                  current={row.cvr}
+                  baseline={baselineAverages.cvr}
+                  metric="cvr"
+                  sampleSize={row.clicks}
+                />
+              )}
             </div>
           );
         },
@@ -288,7 +382,14 @@ export default function DailyKPIsTable({ data, targetDate }: DailyKPIsTableProps
           return (
             <div className="text-right text-gray-700 flex items-center justify-end">
               {(info.getValue() as number).toFixed(2)}%
-              {isTarget && baselineAverages && <ChangeIndicator current={row.sctr} baseline={baselineAverages.sctr} metric="sctr" />}
+              {isTarget && baselineAverages && (
+                <ChangeIndicator
+                  current={row.sctr}
+                  baseline={baselineAverages.sctr}
+                  metric="sctr"
+                  sampleSize={row.clicks}
+                />
+              )}
             </div>
           );
         },
@@ -302,7 +403,14 @@ export default function DailyKPIsTable({ data, targetDate }: DailyKPIsTableProps
           return (
             <div className="text-right text-gray-700 flex items-center justify-end">
               {(info.getValue() as number).toFixed(2)}%
-              {isTarget && baselineAverages && <ChangeIndicator current={row.cotal} baseline={baselineAverages.cotal} metric="cotal" />}
+              {isTarget && baselineAverages && (
+                <ChangeIndicator
+                  current={row.cotal}
+                  baseline={baselineAverages.cotal}
+                  metric="cotal"
+                  sampleSize={row.click_out}
+                />
+              )}
             </div>
           );
         },

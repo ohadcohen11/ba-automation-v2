@@ -186,6 +186,14 @@ export function calculateAllMetrics(
   return metrics as Metrics;
 }
 
+function isValidDimensionValue(value: any): boolean {
+  if (value === null || value === undefined) return false;
+  const strValue = String(value).trim();
+  if (strValue === "" || strValue === "-" || strValue === "null" || strValue === "undefined") return false;
+  if (strValue.toLowerCase() === "unknown") return false;
+  return true;
+}
+
 export function analyzeDimensionBreakdown(
   metricName: string,
   currentRows: RawDataRow[],
@@ -197,7 +205,14 @@ export function analyzeDimensionBreakdown(
   const baselineByDimension = new Map<string, AggregatedData>();
 
   currentRows.forEach((row) => {
-    const key = String(row[dimension]);
+    const dimensionValue = row[dimension];
+
+    // Skip rows with null/empty dimension values
+    if (!isValidDimensionValue(dimensionValue)) {
+      return;
+    }
+
+    const key = String(dimensionValue);
     if (!currentByDimension.has(key)) {
       currentByDimension.set(key, {
         impressions: 0,
@@ -220,7 +235,14 @@ export function analyzeDimensionBreakdown(
   });
 
   baselineRows.forEach((row) => {
-    const key = String(row[dimension]);
+    const dimensionValue = row[dimension];
+
+    // Skip rows with null/empty dimension values
+    if (!isValidDimensionValue(dimensionValue)) {
+      return;
+    }
+
+    const key = String(dimensionValue);
     if (!baselineByDimension.has(key)) {
       baselineByDimension.set(key, {
         impressions: 0,

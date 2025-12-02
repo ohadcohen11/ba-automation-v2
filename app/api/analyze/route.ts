@@ -94,8 +94,8 @@ export async function POST(request: NextRequest) {
           .slice(0, 4),
       }))
       .sort((a, b) => {
-        const severityOrder = { critical: 3, warning: 2, positive: 1, normal: 0 };
-        return severityOrder[b.data.severity] - severityOrder[a.data.severity];
+        const severityOrder: Record<string, number> = { critical: 3, warning: 2, positive: 1, normal: 0 };
+        return (severityOrder[b.data.severity] || 0) - (severityOrder[a.data.severity] || 0);
       });
 
     const decisionTree = buildDecisionTree(metrics, anomalies);

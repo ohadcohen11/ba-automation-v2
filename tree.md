@@ -1,70 +1,63 @@
----
-config:
-  layout: dagre
----
 flowchart TB
- subgraph s1["CPC Increase Branch"]
-        F["<b>Source: Daily stats report<br>(in red - Google Interface)</b><br><br>Check if the increase is coming from:<br>accounts/ segments/ quality/<br>page/ device/ campaigns<br>(including actual VS tCPA)/ match<br>type/ ad group/ keyword"]
-        E["CPC Increase"]
+ subgraph s1["CPC Change Branch"]
+        F["<br>"]
+        E["CPC Change"]
         G@{ label: "<b>Source: Daily stats report</b><br><br>Check change<br>in click% (e.g. bought more 'best'<br>than 'free', bought more desktop<br>than mobile)" }
-        H["Recommendation: Examine<br>and correct purchase mix if<br>needed"]
-        I{"Is the decrease from a specific<br>source?"}
-        J["Check clicks volume<br>(increase/decrease)"]
+        H["check mix and adjust if needed"]
+        G_NO_1["go back to CPC investigation"]
+        I{"Is the change from a specific<br>source?"}
+        J@{ label: "Recommendation:<br style=\"--tw-scale-x:\">adjust prices if needed" }
         L["Recommendation: Continue<br>specific investigation and<br>adjust prices if needed"]
-        K["Broad decrease diagnosis"]
+        K["Broad change diagnosis"]
         M{"<b>Source: Google Interface</b><br><br>Check change<br>history activity"}
-        N{"Check - clicks<br>increased/ decreased/<br>remain the same"}
         O{"<b>Source: Google Interface</b><br><br>Check auction<br>insights"}
         P{"<b>Source: Google</b><br><br>Check seasonality"}
         Q["Recommendation: Evaluate<br>changes, were they too<br>extreme or insufficient?"]
-        R["Recommendation: Continue<br>specific investigation and<br>adjust prices if needed"]
         S["Recommendation: If<br>competition changed, consider<br>price/budget adjustments"]
         T["Recommendation: If<br>holiday/event, implement<br>seasonality adjustments"]
   end
- subgraph s2["CVR Decrease Branch"]
-        V["Diagnose CVR Decrease<br>( CTL, CTS)"]
-        U["CVR Decrease"]
-        W["SCTR decrease"]
-        X["Check if the increase is coming from:<br>accounts/ segments/ quality/<br>page/ device/ campaigns<br>(including actual VS tCPA)/ match<br>type/ ad group/ keyword"]
+ subgraph s2["CVR Change Branch"]
+        V["Diagnose CVR Change<br>"]
+        U["CVR Change"]
+        W["SCTR change"]
+        X["Check if the change is coming from:<br>accounts/ segments/ quality/<br>page/ device/ campaigns<br>(including actual VS tCPA)/ match<br>type/ ad group/ keyword"]
         Y{"<b>Source: Unicorn log</b><br><br>Check brand mix. Was<br>there a change in the lineup?"}
         Z@{ label: "Check change<br>in click% (e.g. bought more 'best'<br>than 'free', bought more desktop<br>than mobile)" }
-        AA["Recommendation: Examine<br>and correct purchase mix if<br>needed"]
-        AB{"Is the decrease from a specific<br>source?"}
+        AA["check mix and adjust if needed"]
+        Z_NO_1["go back to CPC investigation"]
+        AB{"Is the change from a specific<br>source?"}
         AC["Manually evaluate if the result<br>is distorted"]
         AD["End flow here, likely not the<br>cause"]
-        AE["Check clicks volume<br>(increase/decrease)"]
+        AE["Check clicks volume<br>(change/change)"]
         AF["Recommendation: Continue<br>specific investigation and<br>adjust prices if needed"]
-        AG["Broad decrease diagnosis"]
+        AG["Broad change diagnosis"]
         AH{"<b>Source: Google Interface</b><br><br>Check change<br>history activity"}
-        AI{"Check - clicks<br>increased/ decreased/<br>remain the same"}
         AJ{"<b>Source: Google Interface</b><br><br>Check auction<br>insights"}
         AK{"<b>Source: Google</b><br><br>Check seasonality"}
         AL["Recommendation: Evaluate<br>changes, were they too<br>extreme or insufficient?"]
-        AM["Recommendation: Continue<br>specific investigation and<br>adjust prices if needed"]
         AN["Recommendation: If<br>competition changed, consider<br>price/budget adjustments"]
         AO["Recommendation: If<br>holiday/event, implement<br>seasonality adjustments"]
-        AP["Decrease in OCTL or OCTS"]
-        AQ["Check if the increase is coming from:<br>accounts/ segments/ quality/<br>page/ device/ campaigns<br>(including actual VS tCPA)/ match<br>type/ ad group/ keyword"]
+        AP["change in OCTL or OCTS"]
+        AQ["Check if the change is coming from:<br>accounts/ segments/ quality/<br>page/ device/ campaigns<br>(including actual VS tCPA)/ match<br>type/ ad group/ keyword"]
         AR@{ label: "Check change<br>in click% (e.g. bought more 'best'<br>than 'free', bought more desktop<br>than mobile)" }
-        AS["Recommendation: Examine<br>and correct purchase mix if<br>needed"]
-        AT{"Is the decrease from a specific<br>source?"}
-        AU["Check clicks volume<br>(increase/decrease)"]
+        AS["check mix and adjust if needed"]
+        AR_NO_1["go back to CPC investigation"]
+        AT{"Is the change from a specific<br>source?"}
+        AU["Check clicks volume<br>(change/change)"]
         AV["Recommendation: Continue<br>specific investigation and<br>adjust prices if needed"]
-        AW["Broad decrease diagnosis"]
+        AW["Broad change diagnosis"]
         AX{"<b>Source: Google Interface</b><br><br>Check change<br>history activity"}
-        AY{"Check - clicks<br>increased/ decreased/<br>remain the same"}
         AZ{"<b>Source: Google Interface</b><br><br>Check auction<br>insights"}
         BA{"<b>Source: Google</b><br><br>Check seasonality"}
         BB["Recommendation: Evaluate<br>changes, were they too<br>extreme or insufficient?"]
-        BC["Recommendation: Continue<br>specific investigation and<br>adjust prices if needed"]
         BD["Recommendation: If<br>competition changed, consider<br>price/budget adjustments"]
         BE["Recommendation: If<br>holiday/event, implement<br>seasonality adjustments"]
         BF["Brands"]
         BG{"<b>Source: Unicorn log</b><br><br>Check brand mix: Was<br>there a change in the lineup?"}
-        BH{"<b>Source: Dash tracks report</b><br><br>Check performance per<br>brand (OCTL/OCTS decrease)"}
+        BH{"<b>Source: Dash tracks report</b><br><br>Check performance per<br>brand (OCTL/OCTS change)"}
         BI["Manually evaluate if the result<br>is desired"]
         BJ["End flow here, likely not the<br>cause"]
-        BK["Recommendation: Investigate<br>specific cause of conversion<br>rate decrease"]
+        BK["Recommendation: Investigate<br>specific cause of conversion<br>rate change"]
         BL["Recommendation: Recheck<br>traffic, likely originating from<br>there"]
   end
  subgraph s3["EPC Change Branch"]
@@ -87,50 +80,48 @@ flowchart TB
         CO{"Is the issue with all publisher accounts?"}
         CP["Check campaigns"]
   end
-  
-    A["ROAS Decline"] --> B["CPA Increase"] & C & n1["Untitled Node"]
-    B --> D{"CPC Increase or CVR Decrease?"}
-    D -- CPC Increase --> E
-    D -- CVR Decrease --> U
+    A["ROAS Change"] --> B["CPA Change"] & C
+    B --> D{"CPC Change or CVR Change?"}
+    D -- CPC Change --> E
+    D -- CVR Change --> U
     E --> F
-    F -- No --> G
-    G --> H
-    F -- Yes --> I
+    F --> G & I
+    G -- yes --> H
+    G -- no --> G_NO_1
     I -- Yes --> J
     J --> L
     I -- No --> K
-    K --> M & N & O & P
+    K --> M & O & P
     M --> Q
-    N --> R
     O --> S
     P --> T
     U -- Only if significant --> V
     V -- SCTR --> W
     W --> X & Y
     X -- No --> Z
-    Z --> AA
+    Z -- yes --> AA
+    Z -- no --> Z_NO_1
     X -- Yes --> AB
     Y -- Yes --> AC
     Y -- No --> AD
     AB -- Yes --> AE
     AE --> AF
     AB -- No --> AG
-    AG --> AH & AI & AJ & AK
+    AG --> AH & AJ & AK
     AH --> AL
-    AI --> AM
     AJ --> AN
     AK --> AO
     V -- CTL / CTS --> AP
     AP --> AQ & BF
     AQ -- No --> AR
-    AR --> AS
+    AR -- yes --> AS
+    AR -- no --> AR_NO_1
     AQ -- Yes --> AT
     AT -- Yes --> AU
     AU --> AV
     AT -- No --> AW
-    AW --> AX & AY & AZ & BA
+    AW --> AX & AZ & BA
     AX --> BB
-    AY --> BC
     AZ --> BD
     BA --> BE
     BF --> BG & BH
@@ -160,8 +151,16 @@ flowchart TB
     CN -- All Devices --> CO
     CO -- Yes --> CM
     CO -- No --> CP
-    s2 --> s1 & n2["Untitled Node"]
+    s2 --> s1
+    s3 --> n1["Untitled Node"]
 
     G@{ shape: rect}
+    J@{ shape: rect}
     Z@{ shape: rect}
     AR@{ shape: rect}
+    style F stroke:#000000,fill:transparent
+    style G_NO_1 stroke:#000000
+    style L stroke:#D50000
+    style Z_NO_1 stroke:#000000
+    style AR_NO_1 stroke:#000000
+    style s1 stroke:#000000
