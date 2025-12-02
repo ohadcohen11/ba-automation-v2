@@ -11,40 +11,80 @@ interface DecisionTreeViewProps {
 export default function DecisionTreeView({ results }: DecisionTreeViewProps) {
   const mermaidRef = useRef<HTMLDivElement>(null);
   const [activePath, setActivePath] = useState<string[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Determine which path was taken based on metrics
+  // Initialize mermaid only once
   useEffect(() => {
-    const path: string[] = ["A"]; // Start with ROAS Decline
-    const { metrics } = results;
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "default",
+      securityLevel: "loose",
+      flowchart: {
+        useMaxWidth: true,
+        htmlLabels: true,
+        curve: "basis",
+      },
+    });
+    setIsInitialized(true);
+  }, []);
 
-    // Check if ROAS declined (ROI is critical/warning)
-    const roasDecline = metrics.roi.severity === "critical" || metrics.roi.severity === "warning";
+  // Determine which path was taken based on metrics and anomalies
+  useEffect(() => {
+    const path: string[] = ["A", "B"]; // Start with ROAS Change → CPA Change
+    const { metrics, anomalies } = results;
 
-    if (roasDecline) {
-      // Check CPA increase
-      const cpaIncrease = metrics.cpal.severity === "critical" || metrics.cpal.severity === "warning";
+    // Always add decision node
+    path.push("D");
 
-      if (cpaIncrease) {
-        path.push("B", "D");
+    // Check if CPC changed (either increase or decrease)
+    const cpcChange = Math.abs(metrics.cpc.changePercent) > 5;
+    const cvrChange = metrics.cvr && Math.abs(metrics.cvr.changePercent) > 5;
 
-        // Check if CPC Increase or CVR Decrease
-        const cpcIncrease = metrics.cpc.severity === "critical" || metrics.cpc.severity === "warning";
-        const cvrDecrease = metrics.cvr && (metrics.cvr.severity === "critical" || metrics.cvr.severity === "warning");
+    if (cpcChange) {
+      path.push("E", "F");
 
-        if (cpcIncrease) {
-          path.push("E");
-          // CPC Increase branch logic
-          // Add nodes based on the actual analysis needed
-        } else if (cvrDecrease) {
-          path.push("U");
-          // CVR Decrease branch logic
+      // Check if change is from specific source (look at dimension breakdowns)
+      const hasSpecificSource = anomalies.some(a =>
+        a.breakdowns && a.breakdowns.length > 0 && a.breakdowns[0].isPrimaryDriver
+      );
+
+      // Add decision node I
+      path.push("I");
+
+      if (hasSpecificSource) {
+        // Specific source path
+        path.push("J", "L");
+      } else {
+        // Broad change path
+        path.push("G", "K", "M", "O", "P", "Q", "S", "T");
+      }
+    } else if (cvrChange) {
+      path.push("U", "V", "W");
+
+      // Check SCTR path
+      const sctrChange = Math.abs(metrics.sctr.changePercent) > 5;
+      if (sctrChange) {
+        path.push("X", "Y");
+
+        const hasSpecificSource = anomalies.some(a =>
+          a.breakdowns && a.breakdowns.length > 0 && a.breakdowns[0].isPrimaryDriver
+        );
+
+        path.push("AB");
+        if (hasSpecificSource) {
+          path.push("AE", "AF");
+        } else {
+          path.push("Z", "AG", "AH", "AJ", "AK");
         }
       }
+    }
 
-      // Check EPC Change
-      const epcChange = metrics.epal && (metrics.epal.severity === "critical" || metrics.epal.severity === "warning");
-      if (epcChange) {
-        path.push("C");
+    // Check EPC Change
+    const epcChange = metrics.epal && Math.abs(metrics.epal.changePercent) > 5;
+    if (epcChange) {
+      path.push("Start", "Significant");
+      if (Math.abs(metrics.epal.changePercent) > 10) {
+        path.push("PayModel", "CheckEPL", "DealChange");
       }
     }
 
@@ -52,147 +92,282 @@ export default function DecisionTreeView({ results }: DecisionTreeViewProps) {
   }, [results]);
 
   useEffect(() => {
-    if (mermaidRef.current) {
-      mermaid.initialize({
-        startOnLoad: true,
-        theme: "default",
-        securityLevel: "loose",
-        flowchart: {
-          useMaxWidth: true,
-          htmlLabels: true,
-          curve: "basis",
-        },
-      });
+    if (!isInitialized || !mermaidRef.current) return;
 
-      // Determine which branches to show based on metrics
-      const cpcIncrease = results.metrics.cpc.severity === "critical" || results.metrics.cpc.severity === "warning";
-      const cvrDecrease = results.metrics.cvr?.severity === "critical" || results.metrics.cvr?.severity === "warning";
+    // Test with simple diagram first
+    const testSimple = false; // Set to true to test with simple diagram
 
-      // Generate comprehensive diagram with actual values
-      const mermaidDiagram = `
+    const mermaidDiagram = testSimple ? `
 flowchart TB
-    A["<b>ROAS Decline</b><br/>ROI: ${results.metrics.roi.current.toFixed(2)}%<br/>Change: ${results.metrics.roi.changePercent.toFixed(2)}%"]
-    B["<b>CPA Increase</b><br/>CPAL: $${results.metrics.cpal.current.toFixed(2)}<br/>Change: ${results.metrics.cpal.changePercent > 0 ? '+' : ''}${results.metrics.cpal.changePercent.toFixed(2)}%"]
-    C["<b>EPC Change</b><br/>EPAL: $${results.metrics.epal.current.toFixed(2)}<br/>Change: ${results.metrics.epal.changePercent > 0 ? '+' : ''}${results.metrics.epal.changePercent.toFixed(2)}%"]
-    D{"CPC Increase or<br/>CVR Decrease?"}
+    A["ROAS Change"] --> B["CPA Change"]
+    B --> C["Test Node"]
+` : `
+flowchart TB
+ subgraph s1["CPC Change Branch"]
+        F["<b>Source: Daily stats report</b><br>Check if the change is from:<br>accounts/segments/quality/<br>page/device/campaigns"]
+        E["<b>CPC Change</b><br>CPC: $${results.metrics.cpc.current.toFixed(2)}<br>Change: ${results.metrics.cpc.changePercent > 0 ? '+' : ''}${results.metrics.cpc.changePercent.toFixed(2)}%"]
+        G@{ label: "<b>Source: Daily stats report</b><br><br>Check change<br>in click% (e.g. bought more 'best'<br>than 'free', bought more desktop<br>than mobile)" }
+        H["check mix and adjust if needed"]
+        G_NO_1["go back to CPC investigation"]
+        I{"Is the change from a specific<br>source?"}
+        J@{ label: "Recommendation:<br>adjust prices if needed" }
+        L["Recommendation: Continue<br>specific investigation and<br>adjust prices if needed"]
+        K["Broad change diagnosis"]
+        M{"<b>Source: Google Interface</b><br><br>Check change<br>history activity"}
+        O{"<b>Source: Google Interface</b><br><br>Check auction<br>insights"}
+        P{"<b>Source: Google</b><br><br>Check seasonality"}
+        Q["Recommendation: Evaluate<br>changes, were they too<br>extreme or insufficient?"]
+        S["Recommendation: If<br>competition changed, consider<br>price/budget adjustments"]
+        T["Recommendation: If<br>holiday/event, implement<br>seasonality adjustments"]
+  end
+ subgraph s2["CVR Change Branch"]
+        V["Diagnose CVR Change"]
+        U["<b>CVR Change</b><br>CVR: ${results.metrics.cvr?.current.toFixed(2)}%<br>Change: ${results.metrics.cvr?.changePercent > 0 ? '+' : ''}${results.metrics.cvr?.changePercent.toFixed(2)}%"]
+        W["<b>SCTR change</b><br>SCTR: ${results.metrics.sctr.current.toFixed(2)}%<br>Change: ${results.metrics.sctr.changePercent > 0 ? '+' : ''}${results.metrics.sctr.changePercent.toFixed(2)}%"]
+        X["Check if the change is coming from:<br>accounts/ segments/ quality/<br>page/ device/ campaigns<br>(including actual VS tCPA)/ match<br>type/ ad group/ keyword"]
+        Y{"<b>Source: Unicorn log</b><br><br>Check brand mix. Was<br>there a change in the lineup?"}
+        Z@{ label: "Check change<br>in click% (e.g. bought more 'best'<br>than 'free', bought more desktop<br>than mobile)" }
+        AA["check mix and adjust if needed"]
+        Z_NO_1["go back to CPC investigation"]
+        AB{"Is the change from a specific<br>source?"}
+        AC["Manually evaluate if the result<br>is distorted"]
+        AD["End flow here, likely not the<br>cause"]
+        AE["Check clicks volume<br>(change/change)"]
+        AF["Recommendation: Continue<br>specific investigation and<br>adjust prices if needed"]
+        AG["Broad change diagnosis"]
+        AH{"<b>Source: Google Interface</b><br><br>Check change<br>history activity"}
+        AJ{"<b>Source: Google Interface</b><br><br>Check auction<br>insights"}
+        AK{"<b>Source: Google</b><br><br>Check seasonality"}
+        AL["Recommendation: Evaluate<br>changes, were they too<br>extreme or insufficient?"]
+        AN["Recommendation: If<br>competition changed, consider<br>price/budget adjustments"]
+        AO["Recommendation: If<br>holiday/event, implement<br>seasonality adjustments"]
+        AP["change in OCTL or OCTS"]
+        AQ["Check if the change is coming from:<br>accounts/ segments/ quality/<br>page/ device/ campaigns<br>(including actual VS tCPA)/ match<br>type/ ad group/ keyword"]
+        AR@{ label: "Check change<br>in click% (e.g. bought more 'best'<br>than 'free', bought more desktop<br>than mobile)" }
+        AS["check mix and adjust if needed"]
+        AR_NO_1["go back to CPC investigation"]
+        AT{"Is the change from a specific<br>source?"}
+        AU["Check clicks volume<br>(change/change)"]
+        AV["Recommendation: Continue<br>specific investigation and<br>adjust prices if needed"]
+        AW["Broad change diagnosis"]
+        AX{"<b>Source: Google Interface</b><br><br>Check change<br>history activity"}
+        AZ{"<b>Source: Google Interface</b><br><br>Check auction<br>insights"}
+        BA{"<b>Source: Google</b><br><br>Check seasonality"}
+        BB["Recommendation: Evaluate<br>changes, were they too<br>extreme or insufficient?"]
+        BD["Recommendation: If<br>competition changed, consider<br>price/budget adjustments"]
+        BE["Recommendation: If<br>holiday/event, implement<br>seasonality adjustments"]
+        BF["Brands"]
+        BG{"<b>Source: Unicorn log</b><br><br>Check brand mix: Was<br>there a change in the lineup?"}
+        BH{"<b>Source: Dash tracks report</b><br><br>Check performance per<br>brand (OCTL/OCTS change)"}
+        BI["Manually evaluate if the result<br>is desired"]
+        BJ["End flow here, likely not the<br>cause"]
+        BK["Recommendation: Investigate<br>specific cause of conversion<br>rate change"]
+        BL["Recommendation: Recheck<br>traffic, likely originating from<br>there"]
+  end
 
-    A --> B
-    A --> C
+    Start(["<b>EPC Change Detected</b><br>EPAL: $${results.metrics.epal.current.toFixed(2)}<br>Change: ${results.metrics.epal.changePercent > 0 ? '+' : ''}${results.metrics.epal.changePercent.toFixed(2)}%"])
+    Significant{"Is the change<br>significant?"}
+    EndInv([End Investigation])
+    PayModel{"Are most brands<br>paying for Leads or Sales?"}
+
+    subgraph RevenueMetrics ["Revenue Metric Investigation (Price)"]
+        CheckEPL{"Did EPL Change?"}
+        CheckEPS{"Did EPS Change?"}
+
+        DealChange{"Did a brand<br>change their deal?"}
+
+        EndDeal([Cause: Deal Change])
+        LineupChange{"Did Lineups Change?"}
+
+        EndLineup([Cause: Lineup Change<br>affected EPL/EPS])
+        UnknownPrice([Investigate other<br>price factors])
+    end
+
+    subgraph ConversionMetrics ["Conversion Investigation (Volume/CR)"]
+        CRLead[Check Outclick to Lead Ratio]
+        CRSale[Check Outclick to Sale Ratio]
+
+        Scope{"Where did the<br>CR change come from?"}
+    end
+
+    subgraph SpecificBrand ["Specific Brand Investigation"]
+        Reporting{"Verify Reporting:<br>Is it accurate?"}
+
+        TicketData[Open Ticket to Data Team<br>to fix scripts]
+        DeepDive{"Isolate Source"}
+
+        CheckLP[Check Landing Pages]
+        CheckDev[Check Devices]
+
+        ShareBrand[Share findings<br>with Brand]
+    end
+
+    subgraph AllBrands ["Global/System Investigation"]
+        ProdChange{"Was there a<br>Product/Site Change?"}
+
+        AnalyzeEff([Analyze the effect<br>of the change])
+        AccountCheck{"Is the change on<br>ALL Accounts?<br>(Google, MSN, FB)"}
+
+        External([Cause: External Factors<br>Not related to our actions])
+        CampScope{"Is it from ALL campaigns<br>in the changed account?"}
+
+        ContactPub[Reach out to Publisher]
+        InvestCamp[Investigate Specific Campaign]
+    end
+
+    A["<b>ROAS Change</b><br>ROI: ${results.metrics.roi.current.toFixed(2)}%<br>Change: ${results.metrics.roi.changePercent > 0 ? '+' : ''}${results.metrics.roi.changePercent.toFixed(2)}%"]
+    B["<b>CPA Change</b><br>CPAL: $${results.metrics.cpal.current.toFixed(2)}<br>Change: ${results.metrics.cpal.changePercent > 0 ? '+' : ''}${results.metrics.cpal.changePercent.toFixed(2)}%"]
+    D{"CPC Change or CVR Change?"}
+
+    A --> B & Start
     B --> D
-
-    ${cpcIncrease ? `
-    E["<b>CPC Increase</b><br/>CPC: $${results.metrics.cpc.current.toFixed(2)}<br/>Change: ${results.metrics.cpc.changePercent > 0 ? '+' : ''}${results.metrics.cpc.changePercent.toFixed(2)}%"]
-    F["<b>Source: Daily stats report</b><br/>Check if increase is from:<br/>accounts/segments/quality/<br/>page/device/campaigns"]
-    G["Check change in click%<br/>e.g. bought more 'best' than 'free'<br/>bought more desktop than mobile"]
-    H["Recommendation: Examine<br/>and correct purchase mix"]
-    I{"Is the increase from<br/>a specific source?"}
-    J["Check clicks volume<br/>increase/decrease"]
-    K["Broad increase diagnosis"]
-    L["Recommendation: Continue<br/>specific investigation"]
-    M{"Source: Google Interface<br/>Check change history"}
-    N{"Clicks increased/<br/>decreased/<br/>remained same?"}
-    O{"Source: Google Interface<br/>Check auction insights"}
-    P{"Source: Google<br/>Check seasonality"}
-    Q["Recommendation: Evaluate<br/>changes effectiveness"]
-    R["Recommendation: Continue<br/>specific investigation"]
-    S["Recommendation: Adjust<br/>for competition changes"]
-    T["Recommendation: Implement<br/>seasonality adjustments"]
-
-    D -->|CPC Increase| E
+    D -- CPC Change --> E
+    D -- CVR Change --> U
     E --> F
-    F -->|No| G
-    G --> H
-    F -->|Yes| I
-    I -->|Yes| J
+    F --> G & I
+    G -- yes --> H
+    G -- no --> G_NO_1
+    I -- Yes --> J
     J --> L
-    I -->|No| K
-    K --> M
-    K --> N
-    K --> O
-    K --> P
+    I -- No --> K
+    K --> M & O & P
     M --> Q
-    N --> R
     O --> S
     P --> T
-    ` : ''}
-
-    ${cvrDecrease ? `
-    U["<b>CVR Decrease</b><br/>CVR: ${results.metrics.cvr?.current.toFixed(2)}%<br/>Change: ${results.metrics.cvr?.changePercent > 0 ? '+' : ''}${results.metrics.cvr?.changePercent.toFixed(2)}%"]
-    V["Diagnose CVR Decrease<br/>CTL, CTS"]
-    W["SCTR decrease<br/>SCTR: ${results.metrics.sctr.current.toFixed(2)}%<br/>Change: ${results.metrics.sctr.changePercent > 0 ? '+' : ''}${results.metrics.sctr.changePercent.toFixed(2)}%"]
-    X["Check source:<br/>accounts/segments/quality/<br/>page/device/campaigns"]
-    Y{"Source: Unicorn log<br/>Check brand mix"}
-    Z["Check change in click%"]
-    AA["Recommendation: Examine<br/>purchase mix"]
-    AB{"Is decrease from<br/>specific source?"}
-    AC["Manually evaluate<br/>if result is distorted"]
-    AD["End flow here,<br/>likely not the cause"]
-    AE["Check clicks volume"]
-    AF["Recommendation: Continue<br/>investigation"]
-    AG["Broad decrease diagnosis"]
-    AH{"Source: Google Interface<br/>Check change history"}
-    AI{"Clicks increased/<br/>decreased/<br/>remained same?"}
-    AJ{"Source: Google Interface<br/>Check auction insights"}
-    AK{"Source: Google<br/>Check seasonality"}
-    AL["Recommendation: Evaluate<br/>changes effectiveness"]
-    AM["Recommendation: Continue<br/>investigation"]
-    AN["Recommendation: Adjust<br/>for competition"]
-    AO["Recommendation: Implement<br/>seasonality adjustments"]
-
-    D -->|CVR Decrease| U
-    U --> V
-    V -->|SCTR| W
-    W --> X
-    W --> Y
-    X -->|No| Z
-    Z --> AA
-    X -->|Yes| AB
-    Y -->|Yes| AC
-    Y -->|No| AD
-    AB -->|Yes| AE
+    U -- Only if significant --> V
+    V -- SCTR --> W
+    W --> X & Y
+    X -- No --> Z
+    Z -- yes --> AA
+    Z -- no --> Z_NO_1
+    X -- Yes --> AB
+    Y -- Yes --> AC
+    Y -- No --> AD
+    AB -- Yes --> AE
     AE --> AF
-    AB -->|No| AG
-    AG --> AH
-    AG --> AI
-    AG --> AJ
-    AG --> AK
+    AB -- No --> AG
+    AG --> AH & AJ & AK
     AH --> AL
-    AI --> AM
     AJ --> AN
     AK --> AO
-    ` : ''}
+    V -- CTL / CTS --> AP
+    AP --> AQ & BF
+    AQ -- No --> AR
+    AR -- yes --> AS
+    AR -- no --> AR_NO_1
+    AQ -- Yes --> AT
+    AT -- Yes --> AU
+    AU --> AV
+    AT -- No --> AW
+    AW --> AX & AZ & BA
+    AX --> BB
+    AZ --> BD
+    BA --> BE
+    BF --> BG & BH
+    BG -- Yes --> BI
+    BG -- No --> BJ
+    BH -- Specific Brand --> BK
+    BH -- All Brands --> BL
+    s2 --> s1
+
+    Start --> Significant
+    Significant -- No --> EndInv
+    Significant -- Yes --> PayModel
+    PayModel -- Leads --> CheckEPL
+    PayModel -- Sales --> CheckEPS
+    CheckEPL -- Yes --> DealChange
+    CheckEPS -- Yes --> DealChange
+    DealChange -- Yes --> EndDeal
+    DealChange -- No --> LineupChange
+    LineupChange -- Yes --> EndLineup
+    LineupChange -- No --> UnknownPrice
+    CheckEPL -- No --> CRLead
+    CheckEPS -- No --> CRSale
+    CRLead --> Scope
+    CRSale --> Scope
+    Scope -- Specific Brand --> Reporting
+    Reporting -- No/Internal Issue --> TicketData
+    Reporting -- Yes/Matches Brand --> DeepDive
+    DeepDive --> CheckLP
+    DeepDive --> CheckDev
+    CheckLP --> ShareBrand
+    CheckDev --> ShareBrand
+    Scope -- All Brands --> ProdChange
+    ProdChange -- Yes --> AnalyzeEff
+    ProdChange -- No --> AccountCheck
+    AccountCheck -- Yes --> External
+    AccountCheck -- No --> CampScope
+    CampScope -- Yes --> ContactPub
+    CampScope -- No --> InvestCamp
 
     classDef critical fill:#fee,stroke:#f66,stroke-width:3px
     classDef warning fill:#ffe,stroke:#fa0,stroke-width:3px
-    classDef positive fill:#efe,stroke:#6f6,stroke-width:2px
     classDef active fill:#e3f2fd,stroke:#2196f3,stroke-width:4px
+    classDef decision fill:#f9f,stroke:#333,stroke-width:2px
+    classDef process fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef endstate fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,rx:10
     classDef action fill:#f0f9ff,stroke:#0ea5e9,stroke-width:2px
-    classDef decision fill:#fef3c7,stroke:#f59e0b,stroke-width:2px
 
-    class ${activePath.join(",")} active
-    ${results.metrics.roi.severity === "critical" ? "class A critical" : ""}
-    ${results.metrics.cpal.severity === "critical" ? "class B critical" : ""}
-    ${results.metrics.cpal.severity === "warning" ? "class B warning" : ""}
-    ${cpcIncrease ? "class E critical" : ""}
-    ${cvrDecrease ? "class U warning" : ""}
-    class H,L,Q,R,S,T,AA,AF,AL,AM,AN,AO action
-    class D,I,M,N,O,P,Y,AB,AH,AI,AJ,AK decision
+    ${activePath.length > 0 ? `class ${activePath.join(",")} active` : ""}
+    ${Math.abs(results.metrics.roi.changePercent) > 10 ? "\n    class A critical" : ""}
+    ${Math.abs(results.metrics.cpal.changePercent) > 10 ? "\n    class B critical" : ""}
+    ${Math.abs(results.metrics.cpc.changePercent) > 10 ? "\n    class E critical" : ""}
+    ${results.metrics.cvr && Math.abs(results.metrics.cvr.changePercent) > 10 ? "\n    class U warning" : ""}
+
+    class Significant,PayModel,CheckEPL,CheckEPS,DealChange,LineupChange,Scope,Reporting,ProdChange,AccountCheck,CampScope,DeepDive,D,I,M,O,P,Y,AB,AH,AJ,AK,AT,AX,AZ,BA,BG,BH decision
+    class Start,CRLead,CRSale,TicketData,CheckLP,CheckDev,ShareBrand,ContactPub,InvestCamp,F,V,W,X,AP,AQ,BF process
+    class EndInv,EndDeal,EndLineup,AnalyzeEff,External,UnknownPrice endstate
+    class H,L,Q,S,T,AA,AF,AL,AN,AO,AS,AV,BB,BD,BE,BI,BK,BL action
+
+    G@{ shape: rect}
+    J@{ shape: rect}
+    Z@{ shape: rect}
+    AR@{ shape: rect}
+    style F stroke:#000000
+    style G_NO_1 stroke:#000000
+    style L stroke:#D50000
+    style Z_NO_1 stroke:#000000
+    style AR_NO_1 stroke:#000000
+    style s1 stroke:#000000
 `;
 
-      mermaid.render("mermaid-diagram", mermaidDiagram).then((result) => {
+    console.log("Rendering Mermaid diagram...");
+    console.log("Active path:", activePath);
+
+    mermaid.render("mermaid-diagram", mermaidDiagram)
+      .then((result) => {
+        console.log("Mermaid render successful");
         if (mermaidRef.current) {
           mermaidRef.current.innerHTML = result.svg;
+
+          // Force SVG to be visible
+          const svg = mermaidRef.current.querySelector('svg');
+          if (svg) {
+            svg.style.width = '100%';
+            svg.style.height = 'auto';
+            svg.style.maxWidth = '100%';
+            console.log("SVG dimensions:", svg.getBoundingClientRect());
+          }
+        }
+      })
+      .catch((error) => {
+        console.error("Mermaid render error:", error);
+        if (mermaidRef.current) {
+          mermaidRef.current.innerHTML = `<div style="color: red; padding: 20px;">
+            <h3>Error rendering diagram</h3>
+            <p>${error.message}</p>
+            <p>Check console for details.</p>
+          </div>`;
         }
       });
-    }
-  }, [results, activePath]);
+  }, [results, activePath, isInitialized]);
 
   return (
     <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-8">
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Decision Tree Analysis</h2>
         <p className="text-gray-600">
-          This shows the decision flow based on your actual metrics. The highlighted path (blue) shows which branches were triggered.
+          Complete investigation workflow with actual metric values. The highlighted path (blue) shows which branches are triggered based on your data.
         </p>
       </div>
 
@@ -212,31 +387,30 @@ flowchart TB
             <span className="text-gray-700">Warning</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-green-100 border-2 border-green-500 rounded"></div>
-            <span className="text-gray-700">Positive</span>
+            <div className="w-4 h-4 bg-purple-100 border-2 border-purple-500 rounded"></div>
+            <span className="text-gray-700">Decision</span>
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-sky-50 border-2 border-sky-500 rounded"></div>
-            <span className="text-gray-700">Action</span>
+            <span className="text-gray-700">Process/Action</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-amber-50 border-2 border-amber-500 rounded"></div>
-            <span className="text-gray-700">Decision</span>
+            <div className="w-4 h-4 bg-green-100 border-2 border-green-700 rounded-full"></div>
+            <span className="text-gray-700">End State</span>
           </div>
         </div>
       </div>
 
-      <div
-        ref={mermaidRef}
-        className="overflow-x-auto bg-white rounded-lg border border-gray-200 p-6"
-        style={{ minHeight: "400px" }}
-      />
+      <div className="overflow-x-auto bg-white rounded-lg border border-gray-200 p-6" style={{ minHeight: "600px" }}>
+        <div ref={mermaidRef} style={{ width: '100%', minHeight: '500px' }} />
+      </div>
 
       <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h3 className="font-semibold text-blue-900 mb-2">Analysis Summary</h3>
         <div className="text-sm text-blue-800 space-y-1">
           <p><strong>Target Date:</strong> {results.targetDate}</p>
-          <p><strong>Anomalies Detected:</strong> {results.anomalies.length}</p>
+          <p><strong>Active Path:</strong> {activePath.join(" → ")}</p>
+          <p><strong>Decisions Taken:</strong> {activePath.length} steps</p>
           <p><strong>Most Critical:</strong> {results.anomalies[0]?.metric || "None"}</p>
         </div>
       </div>
