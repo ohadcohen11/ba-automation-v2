@@ -192,6 +192,8 @@ export function buildDailyStatsQuery(
             AND p.advertiser_id IN (${advertiserList})
             AND (p.impressions <> 0 OR p.clicks <> 0 OR p.cost <> 0)
             AND (a.name IS NULL OR (LOWER(a.name) NOT LIKE '%facebook%' AND LOWER(a.name) NOT LIKE '% fb%' AND LOWER(a.name) NOT LIKE 'fb %'))
+            AND (pu.name IS NULL OR (LOWER(pu.name) NOT LIKE '%facebook%' AND LOWER(pu.name) NOT LIKE '% fb %' AND LOWER(pu.name) NOT LIKE '% fb %'))
+            AND a.name IS NOT NULL
         GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
     ),
     tracks_data AS (
@@ -244,6 +246,8 @@ export function buildDailyStatsQuery(
             AND t.direct_in_click = 0
             AND t.direct_out_click = 0
             AND (a.name IS NULL OR (LOWER(a.name) NOT LIKE '%facebook%' AND LOWER(a.name) NOT LIKE '% fb%' AND LOWER(a.name) NOT LIKE 'fb %'))
+            AND (pu.name IS NULL OR (LOWER(pu.name) NOT LIKE '%facebook%' AND LOWER(pu.name) NOT LIKE '% fb %' AND LOWER(pu.name) NOT LIKE '% fb %'))
+            AND a.name IS NOT NULL
         GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
     ),
     combined AS (
