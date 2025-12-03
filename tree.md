@@ -4,14 +4,12 @@ config:
 ---
 flowchart TB
  subgraph s1["CPC Change Branch"]
-        F["<br>"]
         E["CPC Change"]
         G@{ label: "<b>Source: Daily stats report</b><br><br>Check change<br>in click% (e.g. bought more 'best'<br>than 'free', bought more desktop<br>than mobile)" }
         H["check mix and adjust if needed"]
         G_NO_1["go back to CPC investigation"]
         I{"Is the change from a specific<br>source?"}
         J@{ label: "Recommendation:<br style=\"--tw-scale-x:\">adjust prices if needed" }
-        L["Recommendation: Continue<br>specific investigation and<br>adjust prices if needed"]
         K["Broad change diagnosis"]
         M{"<b>Source: Google Interface</b><br><br>Check change<br>history activity"}
         O{"<b>Source: Google Interface</b><br><br>Check auction<br>insights"}
@@ -21,10 +19,7 @@ flowchart TB
         T["Recommendation: If<br>holiday/event, implement<br>seasonality adjustments"]
   end
  subgraph s2["CVR Change Branch"]
-        V["Diagnose CVR Change<br>"]
-        U["CVR Change"]
         W["SCTR change"]
-        X["Check if the change is coming from:<br>accounts/ segments/ quality/<br>page/ device/ campaigns<br>(including actual VS tCPA)/ match<br>type/ ad group/ keyword"]
         Y{"<b>Source: Unicorn log</b><br><br>Check brand mix. Was<br>there a change in the lineup?"}
         Z@{ label: "Check change<br>in click% (e.g. bought more 'best'<br>than 'free', bought more desktop<br>than mobile)" }
         AA["check mix and adjust if needed"]
@@ -41,28 +36,6 @@ flowchart TB
         AL["Recommendation: Evaluate<br>changes, were they too<br>extreme or insufficient?"]
         AN["Recommendation: If<br>competition changed, consider<br>price/budget adjustments"]
         AO["Recommendation: If<br>holiday/event, implement<br>seasonality adjustments"]
-        AP["change in OCTL or OCTS"]
-        AQ["Check if the change is coming from:<br>accounts/ segments/ quality/<br>page/ device/ campaigns<br>(including actual VS tCPA)/ match<br>type/ ad group/ keyword"]
-        AR@{ label: "Check change<br>in click% (e.g. bought more 'best'<br>than 'free', bought more desktop<br>than mobile)" }
-        AS["check mix and adjust if needed"]
-        AR_NO_1["go back to CPC investigation"]
-        AT{"Is the change from a specific<br>source?"}
-        AU["Check clicks volume<br>(change/change)"]
-        AV["Recommendation: Continue<br>specific investigation and<br>adjust prices if needed"]
-        AW["Broad change diagnosis"]
-        AX{"<b>Source: Google Interface</b><br><br>Check change<br>history activity"}
-        AZ{"<b>Source: Google Interface</b><br><br>Check auction<br>insights"}
-        BA{"<b>Source: Google</b><br><br>Check seasonality"}
-        BB["Recommendation: Evaluate<br>changes, were they too<br>extreme or insufficient?"]
-        BD["Recommendation: If<br>competition changed, consider<br>price/budget adjustments"]
-        BE["Recommendation: If<br>holiday/event, implement<br>seasonality adjustments"]
-        BF["Brands"]
-        BG{"<b>Source: Unicorn log</b><br><br>Check brand mix: Was<br>there a change in the lineup?"}
-        BH{"<b>Source: Dash tracks report</b><br><br>Check performance per<br>brand (OCTL/OCTS change)"}
-        BI["Manually evaluate if the result<br>is desired"]
-        BJ["End flow here, likely not the<br>cause"]
-        BK["Recommendation: Investigate<br>specific cause of conversion<br>rate change"]
-        BL["Recommendation: Recheck<br>traffic, likely originating from<br>there"]
   end
  
     %% New EPC Change Branch (S3 Replacement)
@@ -122,31 +95,25 @@ flowchart TB
         CampScope -- No --> InvestCamp[Investigate Specific Campaign]
     end
     
-    %% Original Links (updated to link to new EPC start node)
-    A["ROAS Change"] --> B["CPA Change"] & Start
-    B --> D{"CPC Change or CVR Change?"}
+    %% Original Links (updated B and V links)
+    A["ROAS Change"] --> B["Check at 09:00 -> CPOC Change"] & Start
+    B --> D{"CPC Change or SCTR Change?"}
     D -- CPC Change --> E
-    D -- CVR Change --> U
-    E --> F
-    F --> G & I
+    D -- CVR Change --> W
+    E --> G & I
     G -- yes --> H
     G -- no --> G_NO_1
     I -- Yes --> J
-    J --> L
     I -- No --> K
     K --> M & O & P
     M --> Q
     O --> S
     P --> T
-    U -- Only if significant --> V
-    V -- SCTR --> W
-    W --> X & Y
-    X -- No --> Z
-    Z -- yes --> AA
-    Z -- no --> Z_NO_1
-    X -- Yes --> AB
+    W --> Y & Z & AB
     Y -- Yes --> AC
     Y -- No --> AD
+    Z -- yes --> AA
+    Z -- no --> Z_NO_1
     AB -- Yes --> AE
     AE --> AF
     AB -- No --> AG
@@ -154,35 +121,13 @@ flowchart TB
     AH --> AL
     AJ --> AN
     AK --> AO
-    V -- CTL / CTS --> AP
-    AP --> AQ & BF
-    AQ -- No --> AR
-    AR -- yes --> AS
-    AR -- no --> AR_NO_1
-    AQ -- Yes --> AT
-    AT -- Yes --> AU
-    AU --> AV
-    AT -- No --> AW
-    AW --> AX & AZ & BA
-    AX --> BB
-    AZ --> BD
-    BA --> BE
-    BF --> BG & BH
-    BG -- Yes --> BI
-    BG -- No --> BJ
-    BH -- Specific Brand --> BK
-    BH -- All Brands --> BL
     s2 --> s1
 
     G@{ shape: rect}
     J@{ shape: rect}
     Z@{ shape: rect}
-    AR@{ shape: rect}
-    style F stroke:#000000,fill:transparent
     style G_NO_1 stroke:#000000
-    style L stroke:#D50000
     style Z_NO_1 stroke:#000000
-    style AR_NO_1 stroke:#000000
     style s1 stroke:#000000
     
     %% New EPC Styling

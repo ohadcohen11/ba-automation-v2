@@ -513,17 +513,198 @@ export default function DecisionTreeFlowView({ results }: DecisionTreeFlowViewPr
 
         nodes.push({
           id: "sctr_investigate",
-          type: "output",
           data: { label: "Investigate SCTR\nby dimensions" },
           position: { x: xSpacing * 3, y: yPos + ySpacing * 4 },
           style: {
-            background: nodeColors.action.bg,
-            border: `2px solid ${nodeColors.action.border}`,
+            background: activePath.has("sctr_investigate") ? nodeColors.active.bg : nodeColors.investigation.bg,
+            border: `2px solid ${activePath.has("sctr_investigate") ? nodeColors.active.border : nodeColors.investigation.border}`,
             borderRadius: "8px",
             padding: "10px",
             width: 140,
           },
         });
+
+        // Brand mix check
+        const cvrBreakdowns = anomalies.find((a) => a.metric === "cvr")?.breakdowns || [];
+        const advertiserBreakdowns = cvrBreakdowns.filter(
+          (b) => b.dimension === "s_advertiser_name" || b.dimension === "advertiser_name"
+        );
+        const hasBrandMix = advertiserBreakdowns.some((b) => b.isStatisticallySignificant);
+
+        nodes.push({
+          id: "brand_mix_check",
+          data: {
+            label: (
+              <div className="text-center">
+                <div className="font-bold text-xs">Brand Mix</div>
+                <div className="font-bold text-xs">Changed?</div>
+                <div className="text-[10px] mt-1">(Unicorn log)</div>
+              </div>
+            )
+          },
+          position: { x: xSpacing * 3, y: yPos + ySpacing * 5 },
+          style: {
+            background: activePath.has("brand_mix_check") ? nodeColors.active.bg : nodeColors.decision.bg,
+            border: `2px solid ${activePath.has("brand_mix_check") ? nodeColors.active.border : nodeColors.decision.border}`,
+            borderRadius: "12px",
+            padding: "10px",
+            width: 140,
+          },
+        });
+
+        if (hasBrandMix) {
+          nodes.push({
+            id: "brand_mix_changed",
+            data: { label: "Yes - Brand\nMix Changed" },
+            position: { x: xSpacing * 2.5, y: yPos + ySpacing * 6 },
+            style: {
+              background: activePath.has("brand_mix_changed") ? nodeColors.active.bg : nodeColors.investigation.bg,
+              border: `2px solid ${activePath.has("brand_mix_changed") ? nodeColors.active.border : nodeColors.investigation.border}`,
+              borderRadius: "8px",
+              padding: "10px",
+              width: 140,
+            },
+          });
+
+          nodes.push({
+            id: "brand_mix_evaluate",
+            type: "output",
+            data: { label: "Manually evaluate\nif distorted" },
+            position: { x: xSpacing * 2.5, y: yPos + ySpacing * 7 },
+            style: {
+              background: nodeColors.action.bg,
+              border: `2px solid ${nodeColors.action.border}`,
+              borderRadius: "8px",
+              padding: "10px",
+              width: 140,
+            },
+          });
+        } else {
+          nodes.push({
+            id: "brand_mix_stable",
+            data: { label: "No - Brand\nMix Stable" },
+            position: { x: xSpacing * 3.5, y: yPos + ySpacing * 6 },
+            style: {
+              background: activePath.has("brand_mix_stable") ? nodeColors.active.bg : nodeColors.investigation.bg,
+              border: `2px solid ${activePath.has("brand_mix_stable") ? nodeColors.active.border : nodeColors.investigation.border}`,
+              borderRadius: "8px",
+              padding: "10px",
+              width: 140,
+            },
+          });
+
+          // Check specific source
+          const hasSpecificCvrSource = cvrBreakdowns.length > 0 && cvrBreakdowns[0].isPrimaryDriver;
+
+          nodes.push({
+            id: "cvr_source_check",
+            data: {
+              label: (
+                <div className="text-center">
+                  <div className="font-bold text-xs">Specific Source?</div>
+                  {cvrBreakdowns.length > 0 && (
+                    <div className="text-[10px] mt-1">
+                      {cvrBreakdowns[0].dimension}:<br/>
+                      {cvrBreakdowns[0].value}
+                    </div>
+                  )}
+                </div>
+              )
+            },
+            position: { x: xSpacing * 3.5, y: yPos + ySpacing * 7 },
+            style: {
+              background: activePath.has("cvr_source_check") ? nodeColors.active.bg : nodeColors.decision.bg,
+              border: `2px solid ${activePath.has("cvr_source_check") ? nodeColors.active.border : nodeColors.decision.border}`,
+              borderRadius: "12px",
+              padding: "10px",
+              width: 140,
+            },
+          });
+
+          if (hasSpecificCvrSource) {
+            nodes.push({
+              id: "cvr_specific",
+              data: { label: `Specific:\n${cvrBreakdowns[0].value}` },
+              position: { x: xSpacing * 3, y: yPos + ySpacing * 8 },
+              style: {
+                background: activePath.has("cvr_specific") ? nodeColors.active.bg : nodeColors.investigation.bg,
+                border: `2px solid ${activePath.has("cvr_specific") ? nodeColors.active.border : nodeColors.investigation.border}`,
+                borderRadius: "8px",
+                padding: "10px",
+                width: 140,
+              },
+            });
+
+            nodes.push({
+              id: "cvr_adjust_specific",
+              type: "output",
+              data: { label: "Check clicks volume\n& adjust" },
+              position: { x: xSpacing * 3, y: yPos + ySpacing * 9 },
+              style: {
+                background: nodeColors.action.bg,
+                border: `2px solid ${nodeColors.action.border}`,
+                borderRadius: "8px",
+                padding: "10px",
+                width: 140,
+              },
+            });
+          } else {
+            nodes.push({
+              id: "cvr_broad",
+              data: { label: "Broad Change" },
+              position: { x: xSpacing * 4, y: yPos + ySpacing * 8 },
+              style: {
+                background: activePath.has("cvr_broad") ? nodeColors.active.bg : nodeColors.investigation.bg,
+                border: `2px solid ${activePath.has("cvr_broad") ? nodeColors.active.border : nodeColors.investigation.border}`,
+                borderRadius: "8px",
+                padding: "10px",
+                width: 140,
+              },
+            });
+
+            nodes.push({
+              id: "cvr_check_history",
+              type: "output",
+              data: { label: "Check Google\nChange History" },
+              position: { x: xSpacing * 3.5, y: yPos + ySpacing * 9 },
+              style: {
+                background: nodeColors.action.bg,
+                border: `2px solid ${nodeColors.action.border}`,
+                borderRadius: "8px",
+                padding: "10px",
+                width: 140,
+              },
+            });
+
+            nodes.push({
+              id: "cvr_check_competition",
+              type: "output",
+              data: { label: "Check Auction\nInsights" },
+              position: { x: xSpacing * 4, y: yPos + ySpacing * 9 },
+              style: {
+                background: nodeColors.action.bg,
+                border: `2px solid ${nodeColors.action.border}`,
+                borderRadius: "8px",
+                padding: "10px",
+                width: 140,
+              },
+            });
+
+            nodes.push({
+              id: "cvr_check_seasonality",
+              type: "output",
+              data: { label: "Check\nSeasonality" },
+              position: { x: xSpacing * 4.5, y: yPos + ySpacing * 9 },
+              style: {
+                background: nodeColors.action.bg,
+                border: `2px solid ${nodeColors.action.border}`,
+                borderRadius: "8px",
+                padding: "10px",
+                width: 140,
+              },
+            });
+          }
+        }
       } else {
         nodes.push({
           id: "sctr_stable",
@@ -704,6 +885,33 @@ export default function DecisionTreeFlowView({ results }: DecisionTreeFlowViewPr
       if (sctrSignificant) {
         addEdge("sctr_check", "sctr_change", "Yes");
         addEdge("sctr_change", "sctr_investigate");
+        addEdge("sctr_investigate", "brand_mix_check");
+
+        // Brand mix flow
+        const cvrBreakdowns = anomalies.find((a) => a.metric === "cvr")?.breakdowns || [];
+        const advertiserBreakdowns = cvrBreakdowns.filter(
+          (b) => b.dimension === "s_advertiser_name" || b.dimension === "advertiser_name"
+        );
+        const hasBrandMix = advertiserBreakdowns.some((b) => b.isStatisticallySignificant);
+
+        if (hasBrandMix) {
+          addEdge("brand_mix_check", "brand_mix_changed", "Yes");
+          addEdge("brand_mix_changed", "brand_mix_evaluate");
+        } else {
+          addEdge("brand_mix_check", "brand_mix_stable", "No");
+          addEdge("brand_mix_stable", "cvr_source_check");
+
+          const hasSpecificCvrSource = cvrBreakdowns.length > 0 && cvrBreakdowns[0].isPrimaryDriver;
+          if (hasSpecificCvrSource) {
+            addEdge("cvr_source_check", "cvr_specific", "Yes");
+            addEdge("cvr_specific", "cvr_adjust_specific");
+          } else {
+            addEdge("cvr_source_check", "cvr_broad", "No");
+            addEdge("cvr_broad", "cvr_check_history");
+            addEdge("cvr_broad", "cvr_check_competition");
+            addEdge("cvr_broad", "cvr_check_seasonality");
+          }
+        }
       } else {
         addEdge("sctr_check", "sctr_stable", "No");
         addEdge("sctr_stable", "octl_change");

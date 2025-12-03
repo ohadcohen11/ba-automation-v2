@@ -10,10 +10,14 @@ import AnalysisProgress from "@/components/AnalysisProgress";
 import EmailReportView from "@/components/EmailReportView";
 import DimensionalAnalysisTable from "@/components/DimensionalAnalysisTable";
 import { AnomalyResult } from "@/types";
-import { BarChart3, Table2, AlertCircle, GitBranch, Mail, Monitor, Tag, FileText } from "lucide-react";
+import { BarChart3, Table2, AlertCircle, GitBranch, Mail, Monitor, Tag, FileText, Shield, Megaphone, Building2, Globe, Target, Users, Search } from "lucide-react";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"kpis" | "raw" | "results" | "tree" | "email" | "device" | "segment" | "page">("kpis");
+  const [activeTab, setActiveTab] = useState<
+    "kpis" | "raw" | "results" | "tree" | "email" |
+    "device" | "segment" | "page" | "quality" | "campaign" |
+    "account" | "publisher" | "match_type" | "ad_group" | "keyword"
+  >("kpis");
   const [results, setResults] = useState<AnomalyResult | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -201,6 +205,83 @@ export default function Home() {
                   <FileText className="w-3.5 h-3.5" />
                   <span>By Page</span>
                 </button>
+                <button
+                  onClick={() => setActiveTab("quality")}
+                  className={`flex items-center space-x-1.5 px-4 py-2 rounded font-medium text-xs transition-all ${
+                    activeTab === "quality"
+                      ? "bg-blue-600 text-white shadow"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>By Quality</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("campaign")}
+                  className={`flex items-center space-x-1.5 px-4 py-2 rounded font-medium text-xs transition-all ${
+                    activeTab === "campaign"
+                      ? "bg-blue-600 text-white shadow"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+                >
+                  <Megaphone className="w-3.5 h-3.5" />
+                  <span>By Campaign</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("account")}
+                  className={`flex items-center space-x-1.5 px-4 py-2 rounded font-medium text-xs transition-all ${
+                    activeTab === "account"
+                      ? "bg-blue-600 text-white shadow"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>By Account</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("publisher")}
+                  className={`flex items-center space-x-1.5 px-4 py-2 rounded font-medium text-xs transition-all ${
+                    activeTab === "publisher"
+                      ? "bg-blue-600 text-white shadow"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>By Publisher</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("match_type")}
+                  className={`flex items-center space-x-1.5 px-4 py-2 rounded font-medium text-xs transition-all ${
+                    activeTab === "match_type"
+                      ? "bg-blue-600 text-white shadow"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+                >
+                  <Target className="w-3.5 h-3.5" />
+                  <span>By Match Type</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("ad_group")}
+                  className={`flex items-center space-x-1.5 px-4 py-2 rounded font-medium text-xs transition-all ${
+                    activeTab === "ad_group"
+                      ? "bg-blue-600 text-white shadow"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>By Ad Group</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("keyword")}
+                  className={`flex items-center space-x-1.5 px-4 py-2 rounded font-medium text-xs transition-all ${
+                    activeTab === "keyword"
+                      ? "bg-blue-600 text-white shadow"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  <span>By Keyword</span>
+                </button>
               </nav>
             </div>
 
@@ -239,6 +320,62 @@ export default function Home() {
                   targetDate={results.targetDate}
                   dimension="page"
                   dimensionLabel="Page"
+                />
+              )}
+              {activeTab === "quality" && (
+                <DimensionalAnalysisTable
+                  data={[...results.rawData.current, ...results.rawData.baseline]}
+                  targetDate={results.targetDate}
+                  dimension="campaign_quality"
+                  dimensionLabel="Campaign Quality"
+                />
+              )}
+              {activeTab === "campaign" && (
+                <DimensionalAnalysisTable
+                  data={[...results.rawData.current, ...results.rawData.baseline]}
+                  targetDate={results.targetDate}
+                  dimension="campaign_name"
+                  dimensionLabel="Campaign"
+                />
+              )}
+              {activeTab === "account" && (
+                <DimensionalAnalysisTable
+                  data={[...results.rawData.current, ...results.rawData.baseline]}
+                  targetDate={results.targetDate}
+                  dimension="account_name"
+                  dimensionLabel="Account"
+                />
+              )}
+              {activeTab === "publisher" && (
+                <DimensionalAnalysisTable
+                  data={[...results.rawData.current, ...results.rawData.baseline]}
+                  targetDate={results.targetDate}
+                  dimension="publisher_name"
+                  dimensionLabel="Publisher"
+                />
+              )}
+              {activeTab === "match_type" && (
+                <DimensionalAnalysisTable
+                  data={[...results.rawData.current, ...results.rawData.baseline]}
+                  targetDate={results.targetDate}
+                  dimension="match_type"
+                  dimensionLabel="Match Type"
+                />
+              )}
+              {activeTab === "ad_group" && (
+                <DimensionalAnalysisTable
+                  data={[...results.rawData.current, ...results.rawData.baseline]}
+                  targetDate={results.targetDate}
+                  dimension="ad_group_name"
+                  dimensionLabel="Ad Group"
+                />
+              )}
+              {activeTab === "keyword" && (
+                <DimensionalAnalysisTable
+                  data={[...results.rawData.current, ...results.rawData.baseline]}
+                  targetDate={results.targetDate}
+                  dimension="keyword_name"
+                  dimensionLabel="Keyword"
                 />
               )}
             </div>
