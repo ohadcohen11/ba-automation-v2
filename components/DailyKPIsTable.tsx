@@ -122,11 +122,6 @@ const ChangeIndicator = ({
         <span className="ml-0.5">{isIncrease ? '+' : '-'}{Math.abs(changePercent).toFixed(1)}%</span>
         {sigTest.significant && <span className="ml-1 text-[10px]">⚠️</span>}
       </div>
-      {sigTest.threshold && (
-        <div className="text-[10px] text-gray-500 mt-0.5">
-          Range: {sigTest.threshold.lowerBound.toFixed(1)}-{sigTest.threshold.upperBound.toFixed(1)}%
-        </div>
-      )}
       {sigTest.reason === "low_volume" && (
         <div className="text-[10px] text-gray-400 mt-0.5">Low volume</div>
       )}

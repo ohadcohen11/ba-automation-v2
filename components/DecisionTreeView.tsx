@@ -35,6 +35,10 @@ export default function DecisionTreeView({ results }: DecisionTreeViewProps) {
     const path: string[] = ["A", "B"]; // Start with ROAS Change → CPA Change
     const { metrics, anomalies } = results;
 
+    console.log("=== DECISION TREE PATH EVALUATION ===");
+    console.log("Metrics:", metrics);
+    console.log("Anomalies:", anomalies);
+
     // Always add decision node
     path.push("D");
 
@@ -42,7 +46,11 @@ export default function DecisionTreeView({ results }: DecisionTreeViewProps) {
     const cpcChange = Math.abs(metrics.cpc.changePercent) > 5;
     const cvrChange = metrics.cvr && Math.abs(metrics.cvr.changePercent) > 5;
 
+    console.log(`CPC Change: ${cpcChange} (${metrics.cpc.changePercent.toFixed(2)}%)`);
+    console.log(`CVR Change: ${cvrChange} (${metrics.cvr?.changePercent.toFixed(2)}%)`);
+
     if (cpcChange) {
+      console.log("→ Taking CPC Change branch");
       path.push("E", "F");
 
       // Check if change is from specific source (look at dimension breakdowns)
@@ -53,34 +61,102 @@ export default function DecisionTreeView({ results }: DecisionTreeViewProps) {
       path.push("I");
 
       if (hasSpecificSource) {
-        // Specific source path - add which source it is
+        // Specific source path
         const primarySource = cpcBreakdowns[0];
+        console.log(`  → Specific source detected: ${primarySource.dimension} = ${primarySource.value}`);
         path.push("J", "L");
-        console.log(`CPC change is from specific source: ${primarySource.dimension} = ${primarySource.value}`);
       } else {
         // Broad change path
+        console.log("  → Broad change across sources");
         path.push("K", "M", "O", "P");
-        console.log("CPC change is broad across all sources");
       }
     } else if (cvrChange) {
-      path.push("U", "V", "W");
+      console.log("→ Taking CVR Change branch");
+      path.push("U", "V");
 
       // Check SCTR path
       const sctrChange = Math.abs(metrics.sctr.changePercent) > 5;
+      console.log(`  SCTR Change: ${sctrChange} (${metrics.sctr.changePercent.toFixed(2)}%)`);
+
       if (sctrChange) {
-        path.push("X", "Y");
+        console.log("  → SCTR changed significantly");
+        path.push("W", "X");
+
+        // Check brand mix (look at advertiser dimension)
+        const cvrBreakdowns = anomalies.find(a => a.metric === 'cvr')?.breakdowns || [];
+        const advertiserBreakdowns = cvrBreakdowns.filter(b =>
+          b.dimension === 's_advertiser_name' || b.dimension === 'advertiser_name'
+        );
+        const hasBrandMixChange = advertiserBreakdowns.length > 0 &&
+          advertiserBreakdowns.some(b => Math.abs(b.changePercent) > 10);
+
+        // Add brand mix decision node Y
+        path.push("Y");
+
+        if (hasBrandMixChange) {
+          console.log("  → Brand mix changed (Unicorn log check: YES)");
+          path.push("AC", "AD");
+        } else {
+          console.log("  → No brand mix change (Unicorn log check: NO)");
+          // Check if change is from specific source
+          const hasSpecificSource = cvrBreakdowns.length > 0 && cvrBreakdowns[0].isPrimaryDriver;
+
+          // Add decision node AB
+          path.push("AB");
+
+          if (hasSpecificSource) {
+            const primarySource = cvrBreakdowns[0];
+            console.log(`    → Specific source: ${primarySource.dimension} = ${primarySource.value}`);
+            path.push("AE", "AF");
+          } else {
+            console.log("    → Broad change");
+            path.push("AG", "AH", "AJ", "AK");
+          }
+        }
+      } else {
+        console.log("  → SCTR stable, checking CTL/CTS path");
+        // CTL/CTS path
+        path.push("AP", "AQ");
 
         const cvrBreakdowns = anomalies.find(a => a.metric === 'cvr')?.breakdowns || [];
         const hasSpecificSource = cvrBreakdowns.length > 0 && cvrBreakdowns[0].isPrimaryDriver;
 
-        path.push("AB");
+        // Add decision node AT
+        path.push("AT");
+
         if (hasSpecificSource) {
-          path.push("AE", "AF");
-          const primarySource = cvrBreakdowns[0];
-          console.log(`CVR change is from specific source: ${primarySource.dimension} = ${primarySource.value}`);
+          console.log("    → Specific source detected");
+          path.push("AU", "AV");
         } else {
-          path.push("AG", "AH", "AJ", "AK");
-          console.log("CVR change is broad across all sources");
+          console.log("    → Broad change");
+          path.push("AW", "AX", "AZ", "BA");
+        }
+
+        // Also check brands path
+        path.push("BF", "BG");
+        const advertiserBreakdowns = cvrBreakdowns.filter(b =>
+          b.dimension === 's_advertiser_name' || b.dimension === 'advertiser_name'
+        );
+        const hasBrandChange = advertiserBreakdowns.length > 0 &&
+          advertiserBreakdowns.some(b => Math.abs(b.changePercent) > 10);
+
+        if (hasBrandChange) {
+          console.log("    → Brand lineup changed");
+          path.push("BI");
+        } else {
+          console.log("    → No brand change");
+          path.push("BJ");
+        }
+
+        // Check brand performance
+        path.push("BH");
+        const isSpecificBrand = advertiserBreakdowns.length > 0 && advertiserBreakdowns[0].isPrimaryDriver;
+        if (isSpecificBrand) {
+          console.log("    → Specific brand issue");
+          path.push("BK");
+        } else {
+          console.log("    → All brands affected");
+          path.push("BL");
         }
       }
     }
@@ -88,13 +164,16 @@ export default function DecisionTreeView({ results }: DecisionTreeViewProps) {
     // Check EPC Change
     const epcChange = metrics.epal && Math.abs(metrics.epal.changePercent) > 5;
     if (epcChange) {
+      console.log("→ EPC Change detected");
       path.push("Start", "Significant");
       if (Math.abs(metrics.epal.changePercent) > 10) {
+        console.log("  → Significant EPC change, checking EPL");
         path.push("PayModel", "CheckEPL", "DealChange");
-        console.log("EPC change is significant, investigating EPL");
       }
     }
 
+    console.log("Final path:", path);
+    console.log("===================================");
     setActivePath(path);
   }, [results]);
 
