@@ -3,7 +3,6 @@
 import { AnomalyResult } from "@/types";
 import { TrendingDown, TrendingUp, Copy, Check, Download, FileText, FileCode } from "lucide-react";
 import { useState } from "react";
-import html2pdf from "html2pdf.js";
 
 interface EmailReportViewProps {
   results: AnomalyResult;
@@ -169,44 +168,47 @@ export default function EmailReportView({ results }: EmailReportViewProps) {
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.6;
+      line-height: 1.4;
       color: #333;
       max-width: 800px;
       margin: 0 auto;
-      padding: 20px;
+      padding: 16px;
       background: #f9fafb;
+      font-size: 13px;
     }
     .header {
       text-align: center;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
-      padding: 30px;
-      border-radius: 12px;
-      margin-bottom: 30px;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
     }
     .header h1 {
       margin: 0;
-      font-size: 2em;
+      font-size: 1.25em;
     }
     .header .date {
-      margin: 10px 0 0 0;
-      font-size: 1.1em;
+      margin: 6px 0 0 0;
+      font-size: 0.9em;
       opacity: 0.9;
     }
     .summary {
       background: #dbeafe;
       border-left: 4px solid #3b82f6;
-      padding: 20px;
-      border-radius: 8px;
-      margin-bottom: 30px;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 0.95em;
     }
     .summary h2 {
-      margin: 0 0 15px 0;
+      margin: 0 0 8px 0;
       color: #1e3a8a;
+      font-size: 1em;
     }
     .summary p {
       margin: 0;
-      line-height: 1.8;
+      line-height: 1.5;
     }
     .anomaly {
       background: white;
@@ -231,37 +233,37 @@ export default function EmailReportView({ results }: EmailReportViewProps) {
     .anomaly-header {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 20px;
+      gap: 8px;
+      margin-bottom: 10px;
     }
     .badge {
-      font-size: 2em;
+      font-size: 1.3em;
     }
     .anomaly-title {
-      font-size: 1.4em;
+      font-size: 0.95em;
       font-weight: bold;
       margin: 0;
     }
     .metrics {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 15px;
-      margin-bottom: 20px;
+      gap: 8px;
+      margin-bottom: 10px;
     }
     .metric-card {
       background: rgba(255,255,255,0.6);
-      padding: 15px;
-      border-radius: 8px;
+      padding: 8px;
+      border-radius: 6px;
       border: 1px solid #e5e7eb;
     }
     .metric-label {
-      font-size: 0.85em;
+      font-size: 0.75em;
       color: #6b7280;
       font-weight: 600;
-      margin-bottom: 5px;
+      margin-bottom: 3px;
     }
     .metric-value {
-      font-size: 1.8em;
+      font-size: 1.15em;
       font-weight: bold;
       color: #111827;
     }
@@ -273,26 +275,28 @@ export default function EmailReportView({ results }: EmailReportViewProps) {
     }
     .period {
       color: #6b7280;
-      margin-bottom: 15px;
+      margin-bottom: 8px;
+      font-size: 0.85em;
     }
     .statistical {
       background: rgba(255,255,255,0.6);
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-      font-size: 0.9em;
+      padding: 8px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-size: 0.85em;
     }
     .statistical strong {
       color: #1f2937;
     }
     .breakdown {
       background: rgba(255,255,255,0.6);
-      padding: 15px;
-      border-radius: 8px;
+      padding: 8px;
+      border-radius: 6px;
     }
     .breakdown h4 {
-      margin: 0 0 12px 0;
+      margin: 0 0 6px 0;
       color: #111827;
+      font-size: 0.85em;
     }
     .breakdown ul {
       list-style: none;
@@ -300,8 +304,9 @@ export default function EmailReportView({ results }: EmailReportViewProps) {
       margin: 0;
     }
     .breakdown li {
-      padding: 8px 0;
+      padding: 4px 0;
       border-bottom: 1px solid #f3f4f6;
+      font-size: 0.85em;
     }
     .breakdown li:last-child {
       border-bottom: none;
@@ -309,11 +314,11 @@ export default function EmailReportView({ results }: EmailReportViewProps) {
     .primary-driver {
       background: #fee2e2;
       color: #991b1b;
-      padding: 2px 8px;
-      border-radius: 4px;
+      padding: 1px 6px;
+      border-radius: 3px;
       font-size: 0.75em;
       font-weight: bold;
-      margin-left: 8px;
+      margin-left: 6px;
     }
     .footer {
       text-align: center;
@@ -443,7 +448,13 @@ export default function EmailReportView({ results }: EmailReportViewProps) {
     URL.revokeObjectURL(url);
   };
 
-  const downloadAsPDF = () => {
+  const downloadAsPDF = async () => {
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+
+    // Dynamic import to avoid SSR issues
+    const html2pdf = (await import('html2pdf.js')).default;
+
     const date = new Date(results.targetDate).toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -460,52 +471,55 @@ export default function EmailReportView({ results }: EmailReportViewProps) {
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.6;
+      line-height: 1.4;
       color: #333;
       max-width: 800px;
       margin: 0 auto;
-      padding: 20px;
+      padding: 16px;
       background: #f9fafb;
+      font-size: 13px;
     }
     .header {
       text-align: center;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
-      padding: 30px;
-      border-radius: 12px;
-      margin-bottom: 30px;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
     }
     .header h1 {
       margin: 0;
-      font-size: 2em;
+      font-size: 1.25em;
     }
     .header .date {
-      margin: 10px 0 0 0;
-      font-size: 1.1em;
+      margin: 6px 0 0 0;
+      font-size: 0.9em;
       opacity: 0.9;
     }
     .summary {
       background: #dbeafe;
       border-left: 4px solid #3b82f6;
-      padding: 20px;
-      border-radius: 8px;
-      margin-bottom: 30px;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 0.95em;
     }
     .summary h2 {
-      margin: 0 0 15px 0;
+      margin: 0 0 8px 0;
       color: #1e3a8a;
+      font-size: 1em;
     }
     .summary p {
       margin: 0;
-      line-height: 1.8;
+      line-height: 1.5;
     }
     .anomaly {
       background: white;
       border: 2px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 25px;
-      margin-bottom: 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
       page-break-inside: avoid;
     }
     .anomaly.critical {
@@ -523,37 +537,37 @@ export default function EmailReportView({ results }: EmailReportViewProps) {
     .anomaly-header {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 20px;
+      gap: 8px;
+      margin-bottom: 10px;
     }
     .badge {
-      font-size: 2em;
+      font-size: 1.3em;
     }
     .anomaly-title {
-      font-size: 1.4em;
+      font-size: 0.95em;
       font-weight: bold;
       margin: 0;
     }
     .metrics {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 15px;
-      margin-bottom: 20px;
+      gap: 8px;
+      margin-bottom: 10px;
     }
     .metric-card {
       background: rgba(255,255,255,0.6);
-      padding: 15px;
-      border-radius: 8px;
+      padding: 8px;
+      border-radius: 6px;
       border: 1px solid #e5e7eb;
     }
     .metric-label {
-      font-size: 0.85em;
+      font-size: 0.75em;
       color: #6b7280;
       font-weight: 600;
-      margin-bottom: 5px;
+      margin-bottom: 3px;
     }
     .metric-value {
-      font-size: 1.8em;
+      font-size: 1.15em;
       font-weight: bold;
       color: #111827;
     }
@@ -565,26 +579,28 @@ export default function EmailReportView({ results }: EmailReportViewProps) {
     }
     .period {
       color: #6b7280;
-      margin-bottom: 15px;
+      margin-bottom: 8px;
+      font-size: 0.85em;
     }
     .statistical {
       background: rgba(255,255,255,0.6);
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-      font-size: 0.9em;
+      padding: 8px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-size: 0.85em;
     }
     .statistical strong {
       color: #1f2937;
     }
     .breakdown {
       background: rgba(255,255,255,0.6);
-      padding: 15px;
-      border-radius: 8px;
+      padding: 8px;
+      border-radius: 6px;
     }
     .breakdown h4 {
-      margin: 0 0 12px 0;
+      margin: 0 0 6px 0;
       color: #111827;
+      font-size: 0.85em;
     }
     .breakdown ul {
       list-style: none;
@@ -592,8 +608,9 @@ export default function EmailReportView({ results }: EmailReportViewProps) {
       margin: 0;
     }
     .breakdown li {
-      padding: 8px 0;
+      padding: 4px 0;
       border-bottom: 1px solid #f3f4f6;
+      font-size: 0.85em;
     }
     .breakdown li:last-child {
       border-bottom: none;
@@ -601,11 +618,11 @@ export default function EmailReportView({ results }: EmailReportViewProps) {
     .primary-driver {
       background: #fee2e2;
       color: #991b1b;
-      padding: 2px 8px;
-      border-radius: 4px;
+      padding: 1px 6px;
+      border-radius: 3px;
       font-size: 0.75em;
       font-weight: bold;
-      margin-left: 8px;
+      margin-left: 6px;
     }
   </style>
 </head>
@@ -742,60 +759,60 @@ export default function EmailReportView({ results }: EmailReportViewProps) {
   });
 
   return (
-    <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-8">
+    <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4">
       {/* Header */}
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex justify-between items-start mb-4">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+          <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
             📊 Daily Anomaly Report
           </h2>
-          <p className="text-lg text-gray-600">{date}</p>
+          <p className="text-sm text-gray-600">{date}</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <button
             onClick={copyToClipboard}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
             {copied ? (
               <>
-                <Check className="w-4 h-4" />
+                <Check className="w-3 h-3" />
                 Copied!
               </>
             ) : (
               <>
-                <Copy className="w-4 h-4" />
-                Copy Text
+                <Copy className="w-3 h-3" />
+                Copy
               </>
             )}
           </button>
           <button
             onClick={downloadAsText}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
           >
-            <FileText className="w-4 h-4" />
-            Download TXT
+            <FileText className="w-3 h-3" />
+            TXT
           </button>
           <button
             onClick={downloadAsHTML}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 text-sm bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
           >
-            <FileCode className="w-4 h-4" />
-            Download HTML
+            <FileCode className="w-3 h-3" />
+            HTML
           </button>
           <button
             onClick={downloadAsPDF}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
           >
-            <Download className="w-4 h-4" />
-            Download PDF
+            <Download className="w-3 h-3" />
+            PDF
           </button>
         </div>
       </div>
 
       {/* Executive Summary */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-6 rounded-lg mb-8">
-        <h3 className="font-bold text-blue-900 mb-3 text-lg">Executive Summary</h3>
-        <p className="text-blue-900 leading-relaxed">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-3 rounded-md mb-4">
+        <h3 className="font-bold text-blue-900 mb-2 text-sm">Executive Summary</h3>
+        <p className="text-blue-900 leading-relaxed text-sm">
           Today we detected <strong>{topAnomalies.length}</strong> significant anomal{topAnomalies.length === 1 ? 'y' : 'ies'} requiring attention.
           {mostCritical && (
             <>
@@ -819,55 +836,55 @@ export default function EmailReportView({ results }: EmailReportViewProps) {
       </div>
 
       {/* Anomaly Blocks */}
-      <div className="space-y-6">
+      <div className="space-y-3">
         {topAnomalies.map((anomaly, idx) => {
           const badge = getSeverityBadge(anomaly.data.severity);
           const direction = anomaly.data.direction === 'decrease' ? 'Decrease' : 'Increase';
 
           return (
-            <div key={idx} className={`border-2 rounded-xl p-6 ${badge.color}`}>
+            <div key={idx} className={`border-2 rounded-lg p-3 ${badge.color}`}>
               {/* Header */}
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-3xl">{badge.emoji}</span>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xl">{badge.emoji}</span>
                 <div>
-                  <h3 className="text-xl font-bold">
+                  <h3 className="text-sm font-bold">
                     {badge.label}: {anomaly.metric.toUpperCase()} {direction}
                   </h3>
                 </div>
               </div>
 
               {/* Key Numbers */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div className="bg-white bg-opacity-60 rounded-lg p-3">
-                  <p className="text-xs text-gray-600 font-semibold mb-1">Current</p>
-                  <p className="text-2xl font-bold">{formatValue(anomaly.metric, anomaly.data.current)}</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+                <div className="bg-white bg-opacity-60 rounded-md p-2">
+                  <p className="text-xs text-gray-600 font-semibold mb-0.5">Current</p>
+                  <p className="text-lg font-bold">{formatValue(anomaly.metric, anomaly.data.current)}</p>
                 </div>
-                <div className="bg-white bg-opacity-60 rounded-lg p-3">
-                  <p className="text-xs text-gray-600 font-semibold mb-1">Previous</p>
-                  <p className="text-2xl font-bold">{formatValue(anomaly.metric, anomaly.data.baseline)}</p>
+                <div className="bg-white bg-opacity-60 rounded-md p-2">
+                  <p className="text-xs text-gray-600 font-semibold mb-0.5">Previous</p>
+                  <p className="text-lg font-bold">{formatValue(anomaly.metric, anomaly.data.baseline)}</p>
                 </div>
-                <div className="bg-white bg-opacity-60 rounded-lg p-3">
-                  <p className="text-xs text-gray-600 font-semibold mb-1">Change</p>
-                  <p className={`text-2xl font-bold flex items-center gap-2 ${anomaly.data.changePercent > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                    {anomaly.data.changePercent > 0 ? <TrendingUp className="w-6 h-6" /> : <TrendingDown className="w-6 h-6" />}
+                <div className="bg-white bg-opacity-60 rounded-md p-2">
+                  <p className="text-xs text-gray-600 font-semibold mb-0.5">Change</p>
+                  <p className={`text-lg font-bold flex items-center gap-1 ${anomaly.data.changePercent > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    {anomaly.data.changePercent > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                     {Math.abs(anomaly.data.changePercent).toFixed(1)}%
                   </p>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-xs text-gray-600 mt-0.5">
                     ({anomaly.data.change > 0 ? '+' : ''}{formatValue(anomaly.metric, anomaly.data.change)})
                   </p>
                 </div>
               </div>
 
               {/* Time Period */}
-              <p className="text-sm text-gray-700 mb-4">
+              <p className="text-xs text-gray-700 mb-2">
                 <strong>Period:</strong> {results.baselinePeriod}
               </p>
 
               {/* Statistical Significance */}
               {anomaly.data.significance && (
-                <div className="bg-white bg-opacity-60 rounded-lg p-3 mb-4">
-                  <p className="text-sm font-semibold text-gray-700 mb-1">Statistical Analysis:</p>
-                  <p className="text-sm text-gray-600">
+                <div className="bg-white bg-opacity-60 rounded-md p-2 mb-2">
+                  <p className="text-xs font-semibold text-gray-700 mb-0.5">Statistical Analysis:</p>
+                  <p className="text-xs text-gray-600">
                     p-value = {anomaly.data.significance.pValue.toFixed(4)}
                     {' • '}
                     <span className={anomaly.data.significance.isSignificant ? 'text-red-600 font-bold' : 'text-green-600'}>
@@ -878,21 +895,21 @@ export default function EmailReportView({ results }: EmailReportViewProps) {
               )}
 
               {/* Root Cause Breakdown */}
-              <div className="bg-white bg-opacity-60 rounded-lg p-4">
-                <h4 className="font-bold text-gray-900 mb-3">Root Cause Breakdown:</h4>
+              <div className="bg-white bg-opacity-60 rounded-md p-2">
+                <h4 className="font-bold text-gray-900 mb-1.5 text-xs">Root Cause Breakdown:</h4>
                 {anomaly.breakdowns && anomaly.breakdowns.length > 0 ? (
-                  <ul className="space-y-2">
+                  <ul className="space-y-1">
                     {anomaly.breakdowns.slice(0, 4).map((breakdown, bidx) => (
-                      <li key={bidx} className="flex items-center gap-2">
-                        <span className="text-lg">•</span>
+                      <li key={bidx} className="flex items-center gap-1.5 text-xs">
+                        <span className="text-sm">•</span>
                         <span className="flex-1">
                           <strong>{breakdown.dimension}</strong> = "{breakdown.value}":{' '}
                           <span className={breakdown.changePercent > 0 ? 'text-red-600' : 'text-green-600'}>
                             {breakdown.changePercent > 0 ? '+' : ''}{breakdown.changePercent.toFixed(1)}%
                           </span>
                           {breakdown.isPrimaryDriver && (
-                            <span className="ml-2 text-xs font-bold text-red-600 bg-red-100 px-2 py-1 rounded">
-                              ← PRIMARY DRIVER
+                            <span className="ml-1 text-xs font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">
+                              ← PRIMARY
                             </span>
                           )}
                         </span>
@@ -900,7 +917,7 @@ export default function EmailReportView({ results }: EmailReportViewProps) {
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-gray-600 italic">No significant dimension drivers identified</p>
+                  <p className="text-gray-600 italic text-xs">No significant dimension drivers identified</p>
                 )}
               </div>
             </div>

@@ -30,6 +30,7 @@ interface DailyKPI {
   click_out: number;
   cpc: number;
   cpal: number;
+  cpoc: number;
   roi: number;
   ctr: number;
   cvr: number;
@@ -39,7 +40,7 @@ interface DailyKPI {
 
 // Helper to determine if lower is better for a metric
 const isLowerBetter = (metric: string) => {
-  return ["cpc", "cpal", "cost"].includes(metric);
+  return ["cpc", "cpal", "cpoc", "cost"].includes(metric);
 };
 
 // Calculate statistical significance threshold for proportion-based metrics
@@ -162,6 +163,7 @@ export default function DailyKPIsTable({ data, targetDate }: DailyKPIsTableProps
       ...day,
       cpc: day.clicks > 0 ? day.cost / day.clicks : 0,
       cpal: day.approved_leads > 0 ? day.cost / day.approved_leads : 0,
+      cpoc: day.click_out > 0 ? day.cost / day.click_out : 0,
       roi: day.cost > 0 ? (day.revenue / day.cost) * 100 : 0,
       ctr: day.impressions > 0 ? (day.clicks / day.impressions) * 100 : 0,
       cvr: day.clicks > 0 ? (day.approved_leads / day.clicks) * 100 : 0,
@@ -179,8 +181,10 @@ export default function DailyKPIsTable({ data, targetDate }: DailyKPIsTableProps
       cost: baselineDays.reduce((sum, d) => sum + d.cost, 0) / count,
       revenue: baselineDays.reduce((sum, d) => sum + d.revenue, 0) / count,
       approved_leads: baselineDays.reduce((sum, d) => sum + d.approved_leads, 0) / count,
+      click_out: baselineDays.reduce((sum, d) => sum + d.click_out, 0) / count,
       cpc: baselineDays.reduce((sum, d) => sum + d.cpc, 0) / count,
       cpal: baselineDays.reduce((sum, d) => sum + d.cpal, 0) / count,
+      cpoc: baselineDays.reduce((sum, d) => sum + d.cpoc, 0) / count,
       roi: baselineDays.reduce((sum, d) => sum + d.roi, 0) / count,
       ctr: baselineDays.reduce((sum, d) => sum + d.ctr, 0) / count,
       cvr: baselineDays.reduce((sum, d) => sum + d.cvr, 0) / count,
@@ -277,6 +281,20 @@ export default function DailyKPIsTable({ data, targetDate }: DailyKPIsTableProps
         },
       },
       {
+        accessorKey: "click_out",
+        header: "Click Outs",
+        cell: (info) => {
+          const row = info.row.original;
+          const isTarget = row.date === targetDate;
+          return (
+            <div className="text-right flex items-center justify-end">
+              {(info.getValue() as number).toLocaleString()}
+              {isTarget && baselineAverages && <ChangeIndicator current={row.click_out} baseline={baselineAverages.click_out} metric="click_out" sampleSize={row.clicks} />}
+            </div>
+          );
+        },
+      },
+      {
         accessorKey: "cpc",
         header: "CPC",
         cell: (info) => {
@@ -300,6 +318,20 @@ export default function DailyKPIsTable({ data, targetDate }: DailyKPIsTableProps
             <div className="text-right text-gray-700 flex items-center justify-end">
               ${(info.getValue() as number).toFixed(2)}
               {isTarget && baselineAverages && <ChangeIndicator current={row.cpal} baseline={baselineAverages.cpal} metric="cpal" sampleSize={row.approved_leads} />}
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "cpoc",
+        header: "CPOC",
+        cell: (info) => {
+          const row = info.row.original;
+          const isTarget = row.date === targetDate;
+          return (
+            <div className="text-right text-gray-700 flex items-center justify-end">
+              ${(info.getValue() as number).toFixed(2)}
+              {isTarget && baselineAverages && <ChangeIndicator current={row.cpoc} baseline={baselineAverages.cpoc} metric="cpoc" sampleSize={row.click_out} />}
             </div>
           );
         },
