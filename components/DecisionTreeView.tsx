@@ -42,12 +42,12 @@ export default function DecisionTreeView({ results }: DecisionTreeViewProps) {
     // Always add decision node
     path.push("D");
 
-    // Check if CPC changed (either increase or decrease)
-    const cpcChange = Math.abs(metrics.cpc.changePercent) > 5;
-    const cvrChange = metrics.cvr && Math.abs(metrics.cvr.changePercent) > 5;
+    // Check if CPC changed using statistical significance
+    const cpcChange = metrics.cpc.significance?.isSignificant ?? Math.abs(metrics.cpc.changePercent) > 5;
+    const cvrChange = metrics.cvr?.significance?.isSignificant ?? (metrics.cvr && Math.abs(metrics.cvr.changePercent) > 5);
 
-    console.log(`CPC Change: ${cpcChange} (${metrics.cpc.changePercent.toFixed(2)}%)`);
-    console.log(`CVR Change: ${cvrChange} (${metrics.cvr?.changePercent.toFixed(2)}%)`);
+    console.log(`CPC Change: ${cpcChange} (${metrics.cpc.changePercent.toFixed(2)}%, p=${metrics.cpc.significance?.pValue.toFixed(4) ?? 'N/A'})`);
+    console.log(`CVR Change: ${cvrChange} (${metrics.cvr?.changePercent.toFixed(2)}%, p=${metrics.cvr?.significance?.pValue.toFixed(4) ?? 'N/A'})`);
 
     if (cpcChange) {
       console.log("→ Taking CPC Change branch");
@@ -74,9 +74,9 @@ export default function DecisionTreeView({ results }: DecisionTreeViewProps) {
       console.log("→ Taking CVR Change branch");
       path.push("U", "V");
 
-      // Check SCTR path
-      const sctrChange = Math.abs(metrics.sctr.changePercent) > 5;
-      console.log(`  SCTR Change: ${sctrChange} (${metrics.sctr.changePercent.toFixed(2)}%)`);
+      // Check SCTR path using statistical significance
+      const sctrChange = metrics.sctr.significance?.isSignificant ?? Math.abs(metrics.sctr.changePercent) > 5;
+      console.log(`  SCTR Change: ${sctrChange} (${metrics.sctr.changePercent.toFixed(2)}%, p=${metrics.sctr.significance?.pValue.toFixed(4) ?? 'N/A'})`);
 
       if (sctrChange) {
         console.log("  → SCTR changed significantly");
@@ -88,7 +88,7 @@ export default function DecisionTreeView({ results }: DecisionTreeViewProps) {
           b.dimension === 's_advertiser_name' || b.dimension === 'advertiser_name'
         );
         const hasBrandMixChange = advertiserBreakdowns.length > 0 &&
-          advertiserBreakdowns.some(b => Math.abs(b.changePercent) > 10);
+          advertiserBreakdowns.some(b => b.isStatisticallySignificant ?? Math.abs(b.changePercent) > 10);
 
         // Add brand mix decision node Y
         path.push("Y");
@@ -138,7 +138,7 @@ export default function DecisionTreeView({ results }: DecisionTreeViewProps) {
           b.dimension === 's_advertiser_name' || b.dimension === 'advertiser_name'
         );
         const hasBrandChange = advertiserBreakdowns.length > 0 &&
-          advertiserBreakdowns.some(b => Math.abs(b.changePercent) > 10);
+          advertiserBreakdowns.some(b => b.isStatisticallySignificant ?? Math.abs(b.changePercent) > 10);
 
         if (hasBrandChange) {
           console.log("    → Brand lineup changed");
@@ -161,13 +161,15 @@ export default function DecisionTreeView({ results }: DecisionTreeViewProps) {
       }
     }
 
-    // Check EPC Change
-    const epcChange = metrics.epal && Math.abs(metrics.epal.changePercent) > 5;
+    // Check EPC Change using statistical significance
+    const epcChange = metrics.epal?.significance?.isSignificant ?? (metrics.epal && Math.abs(metrics.epal.changePercent) > 5);
     if (epcChange) {
-      console.log("→ EPC Change detected");
+      console.log(`→ EPC Change detected (p=${metrics.epal.significance?.pValue.toFixed(4) ?? 'N/A'})`);
       path.push("Start", "Significant");
-      if (Math.abs(metrics.epal.changePercent) > 10) {
-        console.log("  → Significant EPC change, checking EPL");
+      // Use statistical significance for the "significant" check as well
+      const isHighlySignificant = metrics.epal.significance?.pValue ? metrics.epal.significance.pValue < 0.01 : Math.abs(metrics.epal.changePercent) > 10;
+      if (isHighlySignificant) {
+        console.log("  → Highly significant EPC change, checking EPL");
         path.push("PayModel", "CheckEPL", "DealChange");
       }
     }

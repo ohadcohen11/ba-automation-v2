@@ -8,11 +8,12 @@ import DailyKPIsTable from "@/components/DailyKPIsTable";
 import RawDataTable from "@/components/RawDataTable";
 import AnalysisProgress from "@/components/AnalysisProgress";
 import EmailReportView from "@/components/EmailReportView";
+import DimensionalAnalysisTable from "@/components/DimensionalAnalysisTable";
 import { AnomalyResult } from "@/types";
-import { BarChart3, Table2, AlertCircle, GitBranch, Mail } from "lucide-react";
+import { BarChart3, Table2, AlertCircle, GitBranch, Mail, Monitor, Tag, FileText } from "lucide-react";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"kpis" | "raw" | "results" | "tree" | "email">("kpis");
+  const [activeTab, setActiveTab] = useState<"kpis" | "raw" | "results" | "tree" | "email" | "device" | "segment" | "page">("kpis");
   const [results, setResults] = useState<AnomalyResult | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -167,6 +168,39 @@ export default function Home() {
                   <Mail className="w-3.5 h-3.5" />
                   <span>Email Report</span>
                 </button>
+                <button
+                  onClick={() => setActiveTab("device")}
+                  className={`flex items-center space-x-1.5 px-4 py-2 rounded font-medium text-xs transition-all ${
+                    activeTab === "device"
+                      ? "bg-blue-600 text-white shadow"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+                >
+                  <Monitor className="w-3.5 h-3.5" />
+                  <span>By Device</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("segment")}
+                  className={`flex items-center space-x-1.5 px-4 py-2 rounded font-medium text-xs transition-all ${
+                    activeTab === "segment"
+                      ? "bg-blue-600 text-white shadow"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+                >
+                  <Tag className="w-3.5 h-3.5" />
+                  <span>By Segment</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("page")}
+                  className={`flex items-center space-x-1.5 px-4 py-2 rounded font-medium text-xs transition-all ${
+                    activeTab === "page"
+                      ? "bg-blue-600 text-white shadow"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>By Page</span>
+                </button>
               </nav>
             </div>
 
@@ -183,6 +217,30 @@ export default function Home() {
               {activeTab === "results" && <ResultsTable results={results} />}
               {activeTab === "tree" && <DecisionTreeView results={results} />}
               {activeTab === "email" && <EmailReportView results={results} />}
+              {activeTab === "device" && (
+                <DimensionalAnalysisTable
+                  data={[...results.rawData.current, ...results.rawData.baseline]}
+                  targetDate={results.targetDate}
+                  dimension="device"
+                  dimensionLabel="Device"
+                />
+              )}
+              {activeTab === "segment" && (
+                <DimensionalAnalysisTable
+                  data={[...results.rawData.current, ...results.rawData.baseline]}
+                  targetDate={results.targetDate}
+                  dimension="campaign_segment"
+                  dimensionLabel="Campaign Segment"
+                />
+              )}
+              {activeTab === "page" && (
+                <DimensionalAnalysisTable
+                  data={[...results.rawData.current, ...results.rawData.baseline]}
+                  targetDate={results.targetDate}
+                  dimension="page"
+                  dimensionLabel="Page"
+                />
+              )}
             </div>
           </div>
         )}

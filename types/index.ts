@@ -51,6 +51,10 @@ export interface DimensionBreakdown {
   value: string;
   changePercent: number;
   isPrimaryDriver: boolean;
+  isStatisticallySignificant?: boolean;
+  pValue?: number;
+  current?: number;
+  baseline?: number;
 }
 
 export interface DecisionNode {

@@ -404,12 +404,38 @@ export function analyzeDimensionBreakdown(
     const change = current - baseline;
     const changePercent = baseline !== 0 ? (change / baseline) * 100 : 0;
 
-    if (Math.abs(changePercent) >= 5) {
+    // Calculate statistical significance for this breakdown
+    const rateMetrics = ['ctr', 'cvr', 'sctr', 'cotal', 'octl', 'roi'];
+    const metricType = rateMetrics.includes(metricName) ? 'rate' : 'value';
+
+    // Determine sample size based on metric type
+    let sampleSize = currentData.clicks;
+    if (metricName === 'ctr') {
+      sampleSize = currentData.impressions;
+    } else if (metricName === 'cotal' || metricName === 'octl') {
+      sampleSize = currentData.clickOuts;
+    }
+
+    const significance = calculateStatisticalSignificance(
+      current,
+      baseline,
+      sampleSize,
+      metricType
+    );
+
+    // Include breakdown if statistically significant OR if change >= 5% (fallback)
+    const isSignificant = significance?.isSignificant ?? Math.abs(changePercent) >= 5;
+
+    if (isSignificant) {
       breakdowns.push({
         dimension: String(dimension),
         value: key,
         changePercent,
         isPrimaryDriver: false,
+        isStatisticallySignificant: significance?.isSignificant ?? false,
+        pValue: significance?.pValue,
+        current,
+        baseline,
       });
     }
   });
