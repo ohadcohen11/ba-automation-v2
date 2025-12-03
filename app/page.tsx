@@ -7,11 +7,12 @@ import DecisionTreeView from "@/components/DecisionTreeView";
 import DailyKPIsTable from "@/components/DailyKPIsTable";
 import RawDataTable from "@/components/RawDataTable";
 import AnalysisProgress from "@/components/AnalysisProgress";
+import EmailReportView from "@/components/EmailReportView";
 import { AnomalyResult } from "@/types";
-import { BarChart3, Table2, AlertCircle, GitBranch } from "lucide-react";
+import { BarChart3, Table2, AlertCircle, GitBranch, Mail } from "lucide-react";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"kpis" | "raw" | "results" | "tree">("kpis");
+  const [activeTab, setActiveTab] = useState<"kpis" | "raw" | "results" | "tree" | "email">("kpis");
   const [results, setResults] = useState<AnomalyResult | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -155,6 +156,17 @@ export default function Home() {
                   <GitBranch className="w-4 h-4" />
                   <span>Decision Tree</span>
                 </button>
+                <button
+                  onClick={() => setActiveTab("email")}
+                  className={`flex items-center space-x-2 px-6 py-3 rounded-md font-medium text-sm transition-all ${
+                    activeTab === "email"
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+                >
+                  <Mail className="w-4 h-4" />
+                  <span>Email Report</span>
+                </button>
               </nav>
             </div>
 
@@ -170,6 +182,7 @@ export default function Home() {
               )}
               {activeTab === "results" && <ResultsTable results={results} />}
               {activeTab === "tree" && <DecisionTreeView results={results} />}
+              {activeTab === "email" && <EmailReportView results={results} />}
             </div>
           </div>
         )}
