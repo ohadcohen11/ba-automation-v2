@@ -92,16 +92,16 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+    <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4">
       {/* Analysis Progress Overlay */}
       <AnalysisProgress isAnalyzing={loading} currentStep={progressStep} />
 
-      <div className="max-w-[1600px] mx-auto">
-        <header className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+      <div className="max-w-[1800px] mx-auto">
+        <header className="mb-4">
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">
             Anomaly Detection Dashboard
           </h1>
-          <p className="text-gray-600 text-lg">
+          <p className="text-gray-600 text-sm">
             Morning Routine Analysis - Dating Vertical
           </p>
         </header>
@@ -109,62 +109,62 @@ export default function Home() {
         <ConfigurationPanel onAnalyze={handleAnalyze} loading={loading} />
 
         {results && (
-          <div className="mt-8">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 p-2">
-              <nav className="flex space-x-2">
+          <div className="mt-4">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-4 p-1.5">
+              <nav className="flex space-x-1">
                 <button
                   onClick={() => setActiveTab("kpis")}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-md font-medium text-sm transition-all ${
+                  className={`flex items-center space-x-1.5 px-4 py-2 rounded font-medium text-xs transition-all ${
                     activeTab === "kpis"
-                      ? "bg-blue-600 text-white shadow-md"
+                      ? "bg-blue-600 text-white shadow"
                       : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                   }`}
                 >
-                  <BarChart3 className="w-4 h-4" />
+                  <BarChart3 className="w-3.5 h-3.5" />
                   <span>Daily KPIs</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("raw")}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-md font-medium text-sm transition-all ${
+                  className={`flex items-center space-x-1.5 px-4 py-2 rounded font-medium text-xs transition-all ${
                     activeTab === "raw"
-                      ? "bg-blue-600 text-white shadow-md"
+                      ? "bg-blue-600 text-white shadow"
                       : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                   }`}
                 >
-                  <Table2 className="w-4 h-4" />
+                  <Table2 className="w-3.5 h-3.5" />
                   <span>Raw Data</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("results")}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-md font-medium text-sm transition-all ${
+                  className={`flex items-center space-x-1.5 px-4 py-2 rounded font-medium text-xs transition-all ${
                     activeTab === "results"
-                      ? "bg-blue-600 text-white shadow-md"
+                      ? "bg-blue-600 text-white shadow"
                       : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                   }`}
                 >
-                  <AlertCircle className="w-4 h-4" />
+                  <AlertCircle className="w-3.5 h-3.5" />
                   <span>Anomalies</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("tree")}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-md font-medium text-sm transition-all ${
+                  className={`flex items-center space-x-1.5 px-4 py-2 rounded font-medium text-xs transition-all ${
                     activeTab === "tree"
-                      ? "bg-blue-600 text-white shadow-md"
+                      ? "bg-blue-600 text-white shadow"
                       : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                   }`}
                 >
-                  <GitBranch className="w-4 h-4" />
+                  <GitBranch className="w-3.5 h-3.5" />
                   <span>Decision Tree</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("email")}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-md font-medium text-sm transition-all ${
+                  className={`flex items-center space-x-1.5 px-4 py-2 rounded font-medium text-xs transition-all ${
                     activeTab === "email"
-                      ? "bg-blue-600 text-white shadow-md"
+                      ? "bg-blue-600 text-white shadow"
                       : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                   }`}
                 >
-                  <Mail className="w-4 h-4" />
+                  <Mail className="w-3.5 h-3.5" />
                   <span>Email Report</span>
                 </button>
               </nav>

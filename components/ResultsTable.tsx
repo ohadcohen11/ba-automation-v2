@@ -101,16 +101,15 @@ function getChangeIcon(direction: string): JSX.Element {
 export default function ResultsTable({ results }: ResultsTableProps) {
   return (
     <div className="bg-white rounded-lg shadow">
-      <div className="p-6 border-b border-gray-200">
-        <h2 className="text-xl font-semibold">Analysis Results</h2>
-        <p className="text-sm text-gray-600 mt-1">
-          Target Date: {results.targetDate} | Baseline: {results.baselinePeriod}
+      <div className="px-4 py-3 border-b border-gray-200">
+        <h2 className="text-lg font-bold text-gray-900">Analysis Results</h2>
+        <p className="text-xs text-gray-600 mt-0.5">
+          Target: {results.targetDate} | Baseline: {results.baselinePeriod}
         </p>
         {results.anomalies.length > 0 && (
-          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-            <p className="text-sm font-medium text-yellow-800">
-              Detected {results.anomalies.length} anomaly(ies) requiring
-              attention
+          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+            <p className="text-xs font-medium text-yellow-800">
+              Detected {results.anomalies.length} anomaly(ies) requiring attention
             </p>
           </div>
         )}
@@ -120,49 +119,49 @@ export default function ResultsTable({ results }: ResultsTableProps) {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide">
                 Metric
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide">
                 Current
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide">
                 Baseline
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide">
                 Change
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase tracking-wide">
                 Status
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-gray-100">
             {Object.entries(results.metrics).map(([metricName, data]) => (
               <tr key={metricName} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <td className="px-3 py-2 whitespace-nowrap text-xs font-medium text-gray-900">
                   {METRIC_LABELS[metricName] || metricName}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
                   {formatValue(data.current, METRIC_FORMATS[metricName] || "#")}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
                   {formatValue(
                     data.baseline,
                     METRIC_FORMATS[metricName] || "#"
                   )}
                 </td>
                 <td
-                  className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${getChangeColor(
+                  className={`px-3 py-2 whitespace-nowrap text-xs font-medium ${getChangeColor(
                     data
                   )}`}
                 >
-                  <div className="flex items-center space-x-1">
+                  <div className="flex items-center space-x-0.5">
                     {getChangeIcon(data.direction)}
                     <span>{Math.abs(data.changePercent).toFixed(2)}%</span>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3 py-2 whitespace-nowrap">
                   {getSeverityBadge(data.severity)}
                 </td>
               </tr>
@@ -172,23 +171,23 @@ export default function ResultsTable({ results }: ResultsTableProps) {
       </div>
 
       {results.anomalies.length > 0 && (
-        <div className="p-6 border-t border-gray-200">
-          <h3 className="text-lg font-semibold mb-4">Anomaly Breakdown</h3>
-          <div className="space-y-6">
+        <div className="px-4 py-3 border-t border-gray-200">
+          <h3 className="text-sm font-bold text-gray-900 mb-3">Anomaly Breakdown</h3>
+          <div className="space-y-3">
             {results.anomalies.map((anomaly, index) => (
               <div
                 key={index}
-                className="border border-gray-200 rounded-lg p-4"
+                className="border border-gray-200 rounded-md p-3"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-md font-medium text-gray-900">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-medium text-gray-900">
                     {METRIC_LABELS[anomaly.metric] || anomaly.metric}
                   </h4>
                   {getSeverityBadge(anomaly.data.severity)}
                 </div>
 
-                <div className="mb-4">
-                  <div className="grid grid-cols-3 gap-4 text-sm">
+                <div className="mb-2">
+                  <div className="grid grid-cols-3 gap-3 text-xs">
                     <div>
                       <span className="text-gray-500">Current: </span>
                       <span className="font-medium">
@@ -223,10 +222,10 @@ export default function ResultsTable({ results }: ResultsTableProps) {
 
                 {anomaly.breakdowns.length > 0 && (
                   <div>
-                    <h5 className="text-sm font-medium text-gray-700 mb-2">
-                      Root Cause Breakdown:
+                    <h5 className="text-xs font-medium text-gray-700 mb-1">
+                      Root Cause:
                     </h5>
-                    <ul className="space-y-1 text-sm">
+                    <ul className="space-y-0.5 text-xs">
                       {anomaly.breakdowns.map((breakdown, idx) => (
                         <li
                           key={idx}
@@ -240,8 +239,8 @@ export default function ResultsTable({ results }: ResultsTableProps) {
                           {breakdown.changePercent > 0 ? "+" : ""}
                           {breakdown.changePercent.toFixed(2)}%
                           {breakdown.isPrimaryDriver && (
-                            <span className="ml-2 text-red-600">
-                              ← PRIMARY DRIVER
+                            <span className="ml-1 text-red-600 text-[10px]">
+                              ← PRIMARY
                             </span>
                           )}
                         </li>

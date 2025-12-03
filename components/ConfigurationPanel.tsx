@@ -47,12 +47,12 @@ export default function ConfigurationPanel({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold mb-4">Configuration</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="bg-white rounded-lg shadow p-4">
+      <h2 className="text-base font-bold text-gray-900 mb-3">Configuration</h2>
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">
               Target Date
             </label>
             <input
@@ -60,12 +60,12 @@ export default function ConfigurationPanel({
               value={targetDate}
               onChange={(e) => setTargetDate(e.target.value)}
               max={format(new Date(), "yyyy-MM-dd")}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">
               Baseline Days
             </label>
             <input
@@ -74,22 +74,22 @@ export default function ConfigurationPanel({
               onChange={(e) => setBaselineDays(parseInt(e.target.value))}
               min={1}
               max={30}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Compare vs average of last {baselineDays} days
+            <p className="text-[10px] text-gray-500 mt-0.5">
+              Compare vs avg of last {baselineDays} days
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">
               Vertical
             </label>
             <select
               value={selectedVertical}
               onChange={(e) => setSelectedVertical(e.target.value)}
               disabled={useCustomIds}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
             >
               {Object.entries(VERTICALS).map(([key, value]) => (
                 <option key={key} value={key}>
@@ -108,7 +108,7 @@ export default function ConfigurationPanel({
               onChange={(e) => setUseCustomIds(e.target.checked)}
               className="rounded text-blue-600 focus:ring-blue-500"
             />
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-xs font-medium text-gray-700">
               Use Custom Advertiser IDs
             </span>
           </label>
@@ -119,7 +119,7 @@ export default function ConfigurationPanel({
               value={customIds}
               onChange={(e) => setCustomIds(e.target.value)}
               placeholder="e.g., 76, 82, 100048"
-              className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full mt-2 px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           )}
         </div>
@@ -127,7 +127,7 @@ export default function ConfigurationPanel({
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+          className="w-full bg-blue-600 text-white py-2 px-4 text-sm rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
         >
           {loading ? "Analyzing..." : "Analyze"}
         </button>
