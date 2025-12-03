@@ -115,8 +115,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     console.error("Error analyzing data:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorStack = error instanceof Error ? error.stack : "";
+    console.error("Error stack:", errorStack);
     return NextResponse.json(
-      { error: "Failed to analyze data" },
+      { error: `Failed to analyze data: ${errorMessage}` },
       { status: 500 }
     );
   }

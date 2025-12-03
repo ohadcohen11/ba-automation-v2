@@ -1,3 +1,15 @@
+export interface StatisticalSignificance {
+  standardError: number;
+  zScore: number;
+  pValue: number;
+  confidenceInterval: {
+    lower: number;
+    upper: number;
+  };
+  isSignificant: boolean;
+  sampleSize: number;
+}
+
 export interface MetricData {
   current: number;
   baseline: number;
@@ -5,6 +17,7 @@ export interface MetricData {
   changePercent: number;
   severity: "critical" | "warning" | "positive" | "normal";
   direction: "increase" | "decrease" | "stable";
+  significance?: StatisticalSignificance;
 }
 
 export interface Metrics {

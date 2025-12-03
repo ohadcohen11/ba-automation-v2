@@ -27,9 +27,18 @@ export default function Home() {
         body: JSON.stringify(config),
       });
       const data = await response.json();
+
+      // Check if the response is an error
+      if (!response.ok || data.error) {
+        console.error("API Error:", data.error || "Unknown error");
+        alert(`Failed to analyze data: ${data.error || "Unknown error"}`);
+        return;
+      }
+
       setResults(data);
     } catch (error) {
       console.error("Error analyzing data:", error);
+      alert("Failed to analyze data. Please check the console for details.");
     } finally {
       setLoading(false);
     }

@@ -46,19 +46,21 @@ export default function DecisionTreeView({ results }: DecisionTreeViewProps) {
       path.push("E", "F");
 
       // Check if change is from specific source (look at dimension breakdowns)
-      const hasSpecificSource = anomalies.some(a =>
-        a.breakdowns && a.breakdowns.length > 0 && a.breakdowns[0].isPrimaryDriver
-      );
+      const cpcBreakdowns = anomalies.find(a => a.metric === 'cpc')?.breakdowns || [];
+      const hasSpecificSource = cpcBreakdowns.length > 0 && cpcBreakdowns[0].isPrimaryDriver;
 
       // Add decision node I
       path.push("I");
 
       if (hasSpecificSource) {
-        // Specific source path
+        // Specific source path - add which source it is
+        const primarySource = cpcBreakdowns[0];
         path.push("J", "L");
+        console.log(`CPC change is from specific source: ${primarySource.dimension} = ${primarySource.value}`);
       } else {
         // Broad change path
-        path.push("G", "K", "M", "O", "P", "Q", "S", "T");
+        path.push("K", "M", "O", "P");
+        console.log("CPC change is broad across all sources");
       }
     } else if (cvrChange) {
       path.push("U", "V", "W");
@@ -68,15 +70,17 @@ export default function DecisionTreeView({ results }: DecisionTreeViewProps) {
       if (sctrChange) {
         path.push("X", "Y");
 
-        const hasSpecificSource = anomalies.some(a =>
-          a.breakdowns && a.breakdowns.length > 0 && a.breakdowns[0].isPrimaryDriver
-        );
+        const cvrBreakdowns = anomalies.find(a => a.metric === 'cvr')?.breakdowns || [];
+        const hasSpecificSource = cvrBreakdowns.length > 0 && cvrBreakdowns[0].isPrimaryDriver;
 
         path.push("AB");
         if (hasSpecificSource) {
           path.push("AE", "AF");
+          const primarySource = cvrBreakdowns[0];
+          console.log(`CVR change is from specific source: ${primarySource.dimension} = ${primarySource.value}`);
         } else {
-          path.push("Z", "AG", "AH", "AJ", "AK");
+          path.push("AG", "AH", "AJ", "AK");
+          console.log("CVR change is broad across all sources");
         }
       }
     }
@@ -87,6 +91,7 @@ export default function DecisionTreeView({ results }: DecisionTreeViewProps) {
       path.push("Start", "Significant");
       if (Math.abs(metrics.epal.changePercent) > 10) {
         path.push("PayModel", "CheckEPL", "DealChange");
+        console.log("EPC change is significant, investigating EPL");
       }
     }
 
@@ -459,13 +464,201 @@ flowchart TB
         />
       </div>
 
-      <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-semibold text-blue-900 mb-2">Analysis Summary</h3>
-        <div className="text-sm text-blue-800 space-y-1">
-          <p><strong>Target Date:</strong> {results.targetDate}</p>
-          <p><strong>Active Path:</strong> {activePath.join(" → ")}</p>
-          <p><strong>Decisions Taken:</strong> {activePath.length} steps</p>
-          <p><strong>Most Critical:</strong> {results.anomalies[0]?.metric || "None"}</p>
+      <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 className="font-semibold text-blue-900 mb-2">Path Summary</h3>
+          <div className="text-sm text-blue-800 space-y-1">
+            <p><strong>Target Date:</strong> {results.targetDate}</p>
+            <p><strong>Active Path:</strong> {activePath.join(" → ")}</p>
+            <p><strong>Decisions Taken:</strong> {activePath.length} steps</p>
+            <p><strong>Most Critical:</strong> {results.anomalies[0]?.metric || "None"}</p>
+          </div>
+        </div>
+
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <h3 className="font-semibold text-purple-900 mb-2">Decisions Made</h3>
+          <div className="text-sm text-purple-800 space-y-2 max-h-40 overflow-y-auto">
+            {results.anomalies.map((anomaly, idx) => (
+              <div key={idx} className="border-l-2 border-purple-400 pl-2">
+                <p className="font-semibold">{anomaly.metric.toUpperCase()}: {anomaly.data.changePercent > 0 ? '+' : ''}{anomaly.data.changePercent.toFixed(1)}%</p>
+                {anomaly.breakdowns && anomaly.breakdowns.length > 0 && (
+                  <p className="text-xs mt-1">
+                    <span className="font-medium">Primary Driver:</span> {anomaly.breakdowns[0].dimension} = "{anomaly.breakdowns[0].value}" ({anomaly.breakdowns[0].changePercent > 0 ? '+' : ''}{anomaly.breakdowns[0].changePercent.toFixed(1)}%)
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-300 rounded-lg p-6 shadow-lg">
+        <h3 className="font-bold text-amber-900 mb-2 text-xl">📊 Statistical Significance Analysis</h3>
+        <p className="text-sm text-amber-800 mb-4">
+          Using Z-test for proportions with 95% confidence level (Z = 1.96).
+          Tests whether changes are statistically significant or just normal variance.
+        </p>
+
+        <div className="grid grid-cols-1 gap-4 text-sm">
+          {Object.entries(results.metrics).map(([key, metric]) => {
+            if (typeof metric === 'object' && 'current' in metric && 'changePercent' in metric) {
+              const sig = metric.significance;
+              const hasSignificance = sig !== null && sig !== undefined;
+              const isSignificant = hasSignificance && sig.isSignificant;
+
+              // Define formulas for each metric
+              const formulas: Record<string, string> = {
+                cpc: 'Cost / Clicks',
+                cpal: 'Cost / Approved Leads',
+                cpoc: 'Cost / Click Outs',
+                cpl: 'Cost / Leads',
+                roi: '(Revenue / Cost) × 100',
+                revenue: 'Total Revenue',
+                ctr: '(Clicks / Impressions) × 100',
+                cvr: '(Approved Leads / Clicks) × 100',
+                sctr: '(Click Outs / Clicks) × 100',
+                cotal: '(Approved Leads / Click Outs) × 100',
+                epoc: 'Revenue / Click Outs',
+                epl: 'Revenue / Leads',
+                epal: 'Revenue / Approved Leads',
+                octl: '(Leads / Click Outs) × 100',
+                clicks: 'Total Clicks',
+                impressions: 'Total Impressions',
+                approvedLeads: 'Total Approved Leads',
+                clickOuts: 'Total Click Outs',
+              };
+
+              const formula = formulas[key] || 'N/A';
+              const isRateMetric = key.includes('roi') || key.includes('ctr') || key.includes('cvr') || key.includes('sctr') || key.includes('cotal') || key.includes('octl');
+
+              return (
+                <div key={key} className={`p-5 rounded-xl border-2 transition-all ${
+                  isSignificant
+                    ? 'bg-red-50 border-red-400 shadow-md'
+                    : hasSignificance
+                    ? 'bg-green-50 border-green-300'
+                    : 'bg-white border-gray-300'
+                }`}>
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <p className="font-bold text-gray-900 text-lg">{key.toUpperCase()}</p>
+                      {hasSignificance && (
+                        <p className={`text-xs font-semibold mt-1 ${isSignificant ? 'text-red-700' : 'text-green-700'}`}>
+                          {isSignificant ? '⚠️ STATISTICALLY SIGNIFICANT' : '✓ Normal Fluctuation'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {/* Formula */}
+                    <div className="bg-gray-50 rounded p-2 border border-gray-200">
+                      <p className="text-xs font-semibold text-gray-700 mb-1">📐 Calculation Formula:</p>
+                      <code className="text-xs bg-white px-2 py-1 rounded border border-gray-300 block font-mono">
+                        {formula}
+                      </code>
+                    </div>
+
+                    {/* Values */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-blue-50 rounded p-2 border border-blue-200">
+                        <p className="text-xs text-blue-600 font-semibold">Current (P₁):</p>
+                        <p className="font-mono font-bold text-blue-900 text-sm">
+                          {isRateMetric ? `${metric.current.toFixed(2)}%` :
+                           key.includes('revenue') || key.includes('cost') || key.includes('cp') || key.includes('ep') ? `$${metric.current.toFixed(2)}` :
+                           metric.current.toFixed(0)}
+                        </p>
+                      </div>
+                      <div className="bg-purple-50 rounded p-2 border border-purple-200">
+                        <p className="text-xs text-purple-600 font-semibold">Baseline (P₀):</p>
+                        <p className="font-mono font-bold text-purple-900 text-sm">
+                          {isRateMetric ? `${metric.baseline.toFixed(2)}%` :
+                           key.includes('revenue') || key.includes('cost') || key.includes('cp') || key.includes('ep') ? `$${metric.baseline.toFixed(2)}` :
+                           metric.baseline.toFixed(0)}
+                        </p>
+                      </div>
+                      <div className={`rounded p-2 border ${metric.changePercent > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+                        <p className="text-xs font-semibold" style={{color: metric.changePercent > 0 ? '#991b1b' : '#166534'}}>Change (Δ):</p>
+                        <p className={`font-mono font-bold text-sm ${metric.changePercent > 0 ? 'text-red-700' : 'text-green-700'}`}>
+                          {metric.changePercent > 0 ? '+' : ''}{metric.changePercent.toFixed(2)}%
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Statistical Analysis */}
+                    {hasSignificance ? (
+                      <>
+                        <div className="bg-indigo-50 rounded p-3 border border-indigo-200">
+                          <p className="text-xs font-bold text-indigo-900 mb-2">📈 Statistical Calculations:</p>
+
+                          {/* Standard Error */}
+                          <div className="mb-2">
+                            <p className="text-xs text-indigo-700 font-semibold">Standard Error (SE):</p>
+                            <code className="text-xs bg-white px-2 py-1 rounded border border-indigo-300 block font-mono mt-1">
+                              SE = √[(P₀ × (1 - P₀)) / n] = {sig.standardError.toFixed(6)}
+                            </code>
+                            <p className="text-xs text-gray-600 mt-1">
+                              Sample size (n) = {sig.sampleSize.toLocaleString()}
+                            </p>
+                          </div>
+
+                          {/* Z-Score */}
+                          <div className="mb-2">
+                            <p className="text-xs text-indigo-700 font-semibold">Z-Score:</p>
+                            <code className="text-xs bg-white px-2 py-1 rounded border border-indigo-300 block font-mono mt-1">
+                              Z = (P₁ - P₀) / SE = {sig.zScore.toFixed(4)}
+                            </code>
+                          </div>
+
+                          {/* P-Value */}
+                          <div className="mb-2">
+                            <p className="text-xs text-indigo-700 font-semibold">P-Value (two-tailed):</p>
+                            <code className="text-xs bg-white px-2 py-1 rounded border border-indigo-300 block font-mono mt-1">
+                              p = {sig.pValue.toFixed(6)} {sig.pValue < 0.05 ? '< 0.05 ✗' : '≥ 0.05 ✓'}
+                            </code>
+                            <p className="text-xs text-gray-600 mt-1">
+                              Significance level α = 0.05 (95% confidence)
+                            </p>
+                          </div>
+
+                          {/* Confidence Interval */}
+                          <div>
+                            <p className="text-xs text-indigo-700 font-semibold">95% Confidence Interval:</p>
+                            <code className="text-xs bg-white px-2 py-1 rounded border border-indigo-300 block font-mono mt-1">
+                              [{sig.confidenceInterval.lower.toFixed(2)}%, {sig.confidenceInterval.upper.toFixed(2)}%]
+                            </code>
+                            <p className="text-xs text-gray-600 mt-1">
+                              Expected range: P₀ ± (1.96 × SE)
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Interpretation */}
+                        <div className={`rounded p-3 border-2 ${isSignificant ? 'bg-red-100 border-red-400' : 'bg-green-100 border-green-400'}`}>
+                          <p className="text-xs font-bold mb-1" style={{color: isSignificant ? '#991b1b' : '#166534'}}>
+                            📋 Interpretation:
+                          </p>
+                          <p className="text-xs" style={{color: isSignificant ? '#7f1d1d' : '#14532d'}}>
+                            {isSignificant
+                              ? `The change is STATISTICALLY SIGNIFICANT (p=${sig.pValue.toFixed(4)} < 0.05). This is NOT just random variance - it represents a real change that requires investigation.`
+                              : `The change is within normal statistical variance (p=${sig.pValue.toFixed(4)} ≥ 0.05). This is likely due to random fluctuation with the given sample size.`
+                            }
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="bg-gray-100 rounded p-3 border border-gray-300">
+                        <p className="text-xs text-gray-700">
+                          Statistical significance testing not applicable for this metric type or insufficient sample size (n &lt; 30).
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })}
         </div>
       </div>
     </div>

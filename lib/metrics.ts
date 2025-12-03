@@ -1,4 +1,8 @@
-import { MetricData, Metrics, RawDataRow, DimensionBreakdown } from "@/types";
+import { MetricData, Metrics, RawDataRow, DimensionBreakdown, StatisticalSignificance } from "@/types";
+
+// Statistical constants
+const Z_SCORE_CONFIDENCE = 1.96; // 95% confidence level
+const MIN_SAMPLE_SIZE = 30; // Minimum sample size for statistical testing
 
 export interface AggregatedData {
   impressions: number;
@@ -84,6 +88,92 @@ export function isMetricBetterWhenLower(metricName: string): boolean {
   return lowerIsBetter.includes(metricName);
 }
 
+/**
+ * Calculate statistical significance for proportion-based metrics (rates)
+ * Uses the Z-test for proportions
+ */
+export function calculateStatisticalSignificance(
+  currentValue: number,
+  baselineValue: number,
+  sampleSize: number,
+  metricType: 'rate' | 'value'
+): StatisticalSignificance | null {
+  // Only calculate for rates (percentages) and if we have enough sample size
+  if (metricType !== 'rate' || sampleSize < MIN_SAMPLE_SIZE) {
+    return null;
+  }
+
+  // Convert percentages to proportions (0-1)
+  const P = baselineValue / 100; // Baseline proportion
+  const P1 = currentValue / 100; // Current proportion
+
+  // Edge case: if baseline is 0 or 1, we can't calculate SE
+  if (P <= 0 || P >= 1) {
+    return null;
+  }
+
+  // Calculate Standard Error: SE = sqrt((P * (1 - P)) / n)
+  const standardError = Math.sqrt((P * (1 - P)) / sampleSize);
+
+  // Calculate Z-Score: Z = (P1 - P) / SE
+  const zScore = standardError > 0 ? (P1 - P) / standardError : 0;
+
+  // Calculate p-value (two-tailed test)
+  // Using normal distribution approximation
+  const pValue = 2 * (1 - normalCDF(Math.abs(zScore)));
+
+  // Calculate confidence interval (95%)
+  const marginOfError = Z_SCORE_CONFIDENCE * standardError;
+  const confidenceInterval = {
+    lower: Math.max(0, P - marginOfError) * 100, // Convert back to percentage
+    upper: Math.min(1, P + marginOfError) * 100, // Convert back to percentage
+  };
+
+  // Determine if significant (p < 0.05 for 95% confidence)
+  const isSignificant = pValue < 0.05;
+
+  return {
+    standardError,
+    zScore,
+    pValue,
+    confidenceInterval,
+    isSignificant,
+    sampleSize,
+  };
+}
+
+/**
+ * Cumulative Distribution Function for standard normal distribution
+ * Approximation using the error function
+ */
+function normalCDF(z: number): number {
+  // Using the approximation: CDF(z) ≈ 0.5 * (1 + erf(z / sqrt(2)))
+  return 0.5 * (1 + erf(z / Math.sqrt(2)));
+}
+
+/**
+ * Error function approximation (Abramowitz and Stegun)
+ */
+function erf(x: number): number {
+  // Constants
+  const a1 = 0.254829592;
+  const a2 = -0.284496736;
+  const a3 = 1.421413741;
+  const a4 = -1.453152027;
+  const a5 = 1.061405429;
+  const p = 0.3275911;
+
+  // Save the sign of x
+  const sign = x >= 0 ? 1 : -1;
+  x = Math.abs(x);
+
+  // Abramowitz and Stegun formula
+  const t = 1.0 / (1.0 + p * x);
+  const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+
+  return sign * y;
+}
+
 export function calculateMetricData(
   metricName: string,
   currentData: AggregatedData,
@@ -107,6 +197,26 @@ export function calculateMetricData(
     direction
   );
 
+  // Determine metric type and sample size for statistical testing
+  const rateMetrics = ['ctr', 'cvr', 'sctr', 'cotal', 'octl', 'roi'];
+  const metricType = rateMetrics.includes(metricName) ? 'rate' : 'value';
+
+  // Use clicks as sample size for most rate metrics
+  let sampleSize = currentData.clicks;
+  if (metricName === 'ctr') {
+    sampleSize = currentData.impressions;
+  } else if (metricName === 'cotal' || metricName === 'octl') {
+    sampleSize = currentData.clickOuts;
+  }
+
+  // Calculate statistical significance
+  const significance = calculateStatisticalSignificance(
+    current,
+    baseline,
+    sampleSize,
+    metricType
+  );
+
   return {
     current,
     baseline,
@@ -114,6 +224,7 @@ export function calculateMetricData(
     changePercent,
     severity,
     direction,
+    significance,
   };
 }
 
