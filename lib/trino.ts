@@ -284,7 +284,7 @@ export function buildDailyStatsQuery(
         SUM(canceled_lead) as canceled_lead
     FROM combined
     GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
-    HAVING SUM(impressions) > 0 OR SUM(clicks) > 0 OR SUM(cost) > 0 OR SUM(revenue) > 0 OR SUM(lead) > 0
+    HAVING SUM(impressions) > 0 OR SUM(clicks) > 0 OR SUM(cost) > 0 OR SUM(revenue) > 0 OR SUM(lead) > 0 OR SUM(click_out) > 0
     ORDER BY stats_date_tz DESC, cost DESC
   `;
 }
