@@ -3,7 +3,7 @@
 import { useState } from "react";
 import ConfigurationPanel from "@/components/ConfigurationPanel";
 import ResultsTable from "@/components/ResultsTable";
-import DecisionTreeView from "@/components/DecisionTreeView";
+import DecisionTreeFlowView from "@/components/DecisionTreeFlowView";
 import DailyKPIsTable from "@/components/DailyKPIsTable";
 import RawDataTable from "@/components/RawDataTable";
 import AnalysisProgress from "@/components/AnalysisProgress";
@@ -215,7 +215,7 @@ export default function Home() {
                 <RawDataTable data={results.rawData.current} />
               )}
               {activeTab === "results" && <ResultsTable results={results} />}
-              {activeTab === "tree" && <DecisionTreeView results={results} />}
+              {activeTab === "tree" && <DecisionTreeFlowView results={results} />}
               {activeTab === "email" && <EmailReportView results={results} />}
               {activeTab === "device" && (
                 <DimensionalAnalysisTable

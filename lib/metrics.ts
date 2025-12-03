@@ -224,7 +224,7 @@ export function calculateMetricData(
     changePercent,
     severity,
     direction,
-    significance,
+    significance: significance ?? undefined,
   };
 }
 
