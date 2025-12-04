@@ -9,12 +9,13 @@ import RawDataTable from "@/components/RawDataTable";
 import AnalysisProgress from "@/components/AnalysisProgress";
 import EmailReportView from "@/components/EmailReportView";
 import DimensionalAnalysisTable from "@/components/DimensionalAnalysisTable";
+import GoogleAdsAnalysisTable from "@/components/GoogleAdsAnalysisTable";
 import { AnomalyResult } from "@/types";
-import { BarChart3, Table2, AlertCircle, GitBranch, Mail, Monitor, Tag, FileText, Shield, Megaphone, Building2, Globe, Target, Users, Search } from "lucide-react";
+import { BarChart3, Table2, AlertCircle, GitBranch, Mail, Monitor, Tag, FileText, Shield, Megaphone, Building2, Globe, Target, Users, Search, ExternalLink } from "lucide-react";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<
-    "kpis" | "raw" | "results" | "tree" | "email" |
+    "kpis" | "raw" | "results" | "tree" | "email" | "google_ads" |
     "device" | "segment" | "page" | "quality" | "campaign" |
     "account" | "publisher" | "match_type" | "ad_group" | "keyword"
   >("kpis");
@@ -173,6 +174,17 @@ export default function Home() {
                   <span>Email Report</span>
                 </button>
                 <button
+                  onClick={() => setActiveTab("google_ads")}
+                  className={`flex items-center space-x-1.5 px-4 py-2 rounded font-medium text-xs transition-all ${
+                    activeTab === "google_ads"
+                      ? "bg-blue-600 text-white shadow"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Google Ads</span>
+                </button>
+                <button
                   onClick={() => setActiveTab("device")}
                   className={`flex items-center space-x-1.5 px-4 py-2 rounded font-medium text-xs transition-all ${
                     activeTab === "device"
@@ -298,6 +310,12 @@ export default function Home() {
               {activeTab === "results" && <ResultsTable results={results} />}
               {activeTab === "tree" && <DecisionTreeFlowView results={results} />}
               {activeTab === "email" && <EmailReportView results={results} />}
+              {activeTab === "google_ads" && (
+                <GoogleAdsAnalysisTable
+                  targetDate={results.targetDate}
+                  lookbackDays={7}
+                />
+              )}
               {activeTab === "device" && (
                 <DimensionalAnalysisTable
                   data={[...results.rawData.current, ...results.rawData.baseline]}
