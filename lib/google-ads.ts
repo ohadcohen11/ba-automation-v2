@@ -307,7 +307,13 @@ export async function fetchAuctionInsightsReport(
   endDate: string
 ): Promise<any[]> {
   try {
-    // Query for auction insights report
+    // Note: auction_insight_search_term_view fields are not available in v22 API
+    // This would require using the separate Auction Insights API endpoint
+    // For now, returning empty array as this is optional data
+    console.log('ℹ️  Auction Insights Report not available in v22 API - skipping');
+    return [];
+
+    /* Original query - fields not available in v22:
     const query = `
       SELECT
         auction_insight_search_term_view.date,
@@ -324,12 +330,11 @@ export async function fetchAuctionInsightsReport(
       ORDER BY auction_insight_search_term_view.date DESC
       LIMIT 100
     `;
-
     const response = await executeQuery(query);
     return response;
+    */
   } catch (error) {
     console.error('Error fetching auction insights report:', error);
-    // This might fail if auction insights are not available
     return [];
   }
 }
@@ -443,7 +448,11 @@ export async function detectSignificantChanges(
 
     response.forEach((row: any) => {
       const event = row.changeEvent;
-      const changedFields = event?.changedFields || [];
+      // changedFields might be a string or array in the API response
+      const changedFieldsRaw = event?.changedFields || [];
+      const changedFields = Array.isArray(changedFieldsRaw)
+        ? changedFieldsRaw
+        : (typeof changedFieldsRaw === 'string' ? [changedFieldsRaw] : []);
 
       // Budget Changes (≥20% threshold)
       if (event?.changeResourceType === 'CAMPAIGN_BUDGET' &&
