@@ -1,8 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { History, TrendingUp, AlertTriangle, CheckCircle, Clock, User, Zap, Activity, DollarSign, TrendingDown } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { History, TrendingUp, AlertTriangle, CheckCircle, Clock, User, Zap, Activity, DollarSign, TrendingDown, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 import { ChangeEvent, AuctionInsightsMetrics, Anomaly, SignificantChange, CampaignMetrics } from "@/lib/google-ads";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  flexRender,
+  SortingState,
+  ColumnDef,
+} from "@tanstack/react-table";
 
 interface GoogleAdsAnalysisTableProps {
   targetDate: string;
@@ -26,6 +34,7 @@ export default function GoogleAdsAnalysisTable({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<"anomalies" | "changes" | "insights" | "metrics">("anomalies");
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   useEffect(() => {
     fetchGoogleAdsData();
@@ -134,6 +143,101 @@ export default function GoogleAdsAnalysisTable({
     if (type === "TARGET_CPA") return "text-green-600 bg-green-50 border-green-200";
     return "text-gray-600 bg-gray-50 border-gray-200";
   };
+
+  // Campaign Metrics table columns
+  const campaignMetricsColumns = useMemo<ColumnDef<CampaignMetrics>[]>(
+    () => [
+      {
+        accessorKey: "campaignName",
+        header: "Campaign",
+        cell: (info) => (
+          <span className="text-xs text-gray-900 max-w-xs truncate block">
+            {info.getValue() as string}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "date",
+        header: "Date",
+        cell: (info) => (
+          <span className="text-xs text-gray-700">{info.getValue() as string}</span>
+        ),
+      },
+      {
+        accessorKey: "device",
+        header: "Device",
+        cell: (info) => (
+          <span className="text-xs text-gray-700">{info.getValue() as string}</span>
+        ),
+      },
+      {
+        accessorKey: "impressions",
+        header: "Impressions",
+        cell: (info) => (
+          <span className="text-xs text-gray-900">
+            {(info.getValue() as number).toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "clicks",
+        header: "Clicks",
+        cell: (info) => (
+          <span className="text-xs text-gray-900">
+            {(info.getValue() as number).toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cost",
+        header: "Cost",
+        cell: (info) => (
+          <span className="text-xs text-gray-900 font-medium">
+            ${(info.getValue() as number).toFixed(2)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "conversions",
+        header: "Conversions",
+        cell: (info) => (
+          <span className="text-xs text-gray-900 font-medium">
+            {(info.getValue() as number).toFixed(1)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cpc",
+        header: "CPC",
+        cell: (info) => (
+          <span className="text-xs text-blue-600 font-medium">
+            ${(info.getValue() as number).toFixed(2)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cvr",
+        header: "CVR",
+        cell: (info) => (
+          <span className="text-xs text-green-600 font-medium">
+            {((info.getValue() as number) * 100).toFixed(2)}%
+          </span>
+        ),
+      },
+    ],
+    []
+  );
+
+  const campaignMetricsTable = useReactTable({
+    data: data?.campaignMetrics || [],
+    columns: campaignMetricsColumns,
+    state: {
+      sorting,
+    },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
 
   if (loading) {
     return (
@@ -433,75 +537,54 @@ export default function GoogleAdsAnalysisTable({
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase">
-                      Campaign
-                    </th>
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase">
-                      Date
-                    </th>
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase">
-                      Device
-                    </th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">
-                      Impressions
-                    </th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">
-                      Clicks
-                    </th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">
-                      Cost
-                    </th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">
-                      Conversions
-                    </th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">
-                      CPC
-                    </th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">
-                      CVR
-                    </th>
-                  </tr>
+                  {campaignMetricsTable.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <th
+                          key={header.id}
+                          className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <span>
+                              {flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                            </span>
+                            <span className="text-gray-400">
+                              {header.column.getIsSorted() === "asc" ? (
+                                <ArrowUp className="w-3 h-3" />
+                              ) : header.column.getIsSorted() === "desc" ? (
+                                <ArrowDown className="w-3 h-3" />
+                              ) : (
+                                <ChevronsUpDown className="w-3 h-3" />
+                              )}
+                            </span>
+                          </div>
+                        </th>
+                      ))}
+                    </tr>
+                  ))}
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {data.campaignMetrics.slice(0, 50).map((metric, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50">
-                      <td className="px-3 py-2 text-xs text-gray-900 max-w-xs truncate">
-                        {metric.campaignName}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-700">
-                        {metric.date}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-700">
-                        {metric.device}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-right text-xs text-gray-900">
-                        {metric.impressions.toLocaleString()}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-right text-xs text-gray-900">
-                        {metric.clicks.toLocaleString()}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-right text-xs text-gray-900 font-medium">
-                        ${metric.cost.toFixed(2)}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-right text-xs text-gray-900 font-medium">
-                        {metric.conversions.toFixed(1)}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-right text-xs text-blue-600 font-medium">
-                        ${metric.cpc.toFixed(2)}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-right text-xs text-green-600 font-medium">
-                        {(metric.cvr * 100).toFixed(2)}%
-                      </td>
+                  {campaignMetricsTable.getRowModel().rows.map((row) => (
+                    <tr key={row.id} className="hover:bg-gray-50">
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="px-3 py-2 whitespace-nowrap">
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {data.campaignMetrics.length > 50 && (
-                <div className="text-center py-3 text-xs text-gray-500 bg-gray-50 border-t">
-                  Showing first 50 of {data.campaignMetrics.length} rows
-                </div>
-              )}
+              <div className="mt-3 text-xs text-gray-500 text-center">
+                Showing {campaignMetricsTable.getRowModel().rows.length} of {data.campaignMetrics.length} rows
+              </div>
             </div>
           )}
         </div>
