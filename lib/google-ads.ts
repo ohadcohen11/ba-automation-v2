@@ -138,6 +138,27 @@ export interface CampaignMetrics {
   cvr: number;
 }
 
+// Keyword Metrics Types
+export interface KeywordMetrics {
+  keywordId: string;
+  keywordText: string;
+  matchType: string;
+  campaignId: string;
+  campaignName: string;
+  adGroupId: string;
+  adGroupName: string;
+  date: string;
+  impressions: number;
+  clicks: number;
+  cost: number;
+  conversions: number;
+  cpc: number;
+  cvr: number;
+  ctr: number;
+  qualityScore: number;
+  status: string;
+}
+
 // Anomaly Types
 export interface Anomaly {
   metric: string;
@@ -694,4 +715,74 @@ function calculateAverageCVR(metrics: CampaignMetrics[]): number {
   const totalConversions = metrics.reduce((sum, m) => sum + m.conversions, 0);
   const totalClicks = metrics.reduce((sum, m) => sum + m.clicks, 0);
   return totalClicks > 0 ? totalConversions / totalClicks : 0;
+}
+
+/**
+ * Fetch Keyword Metrics
+ * Returns detailed keyword performance data
+ */
+export async function fetchKeywordMetrics(
+  startDate: string,
+  endDate: string
+): Promise<KeywordMetrics[]> {
+  try {
+    const query = `
+      SELECT
+        ad_group_criterion.criterion_id,
+        ad_group_criterion.keyword.text,
+        ad_group_criterion.keyword.match_type,
+        ad_group_criterion.quality_info.quality_score,
+        ad_group_criterion.status,
+        campaign.id,
+        campaign.name,
+        ad_group.id,
+        ad_group.name,
+        segments.date,
+        metrics.impressions,
+        metrics.clicks,
+        metrics.cost_micros,
+        metrics.conversions,
+        metrics.ctr
+      FROM keyword_view
+      WHERE segments.date >= '${startDate}'
+        AND segments.date <= '${endDate}'
+        AND ad_group_criterion.status != 'REMOVED'
+      ORDER BY metrics.cost_micros DESC
+      LIMIT 500
+    `;
+
+    const response = await executeQuery(query);
+
+    const keywords: KeywordMetrics[] = response.map((row: any) => {
+      const cost = parseFloat(row.metrics?.costMicros || 0) / 1000000;
+      const clicks = parseInt(row.metrics?.clicks || 0);
+      const conversions = parseFloat(row.metrics?.conversions || 0);
+      const impressions = parseInt(row.metrics?.impressions || 0);
+
+      return {
+        keywordId: row.adGroupCriterion?.criterionId?.toString() || '',
+        keywordText: row.adGroupCriterion?.keyword?.text || '',
+        matchType: row.adGroupCriterion?.keyword?.matchType || '',
+        qualityScore: parseInt(row.adGroupCriterion?.qualityInfo?.qualityScore || 0),
+        status: row.adGroupCriterion?.status || '',
+        campaignId: row.campaign?.id?.toString() || '',
+        campaignName: row.campaign?.name || '',
+        adGroupId: row.adGroup?.id?.toString() || '',
+        adGroupName: row.adGroup?.name || '',
+        date: row.segments?.date || '',
+        impressions,
+        clicks,
+        cost,
+        conversions,
+        cpc: clicks > 0 ? cost / clicks : 0,
+        cvr: clicks > 0 ? conversions / clicks : 0,
+        ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
+      };
+    });
+
+    return keywords;
+  } catch (error) {
+    console.error('Error fetching keyword metrics:', error);
+    throw new Error(`Failed to fetch keyword metrics: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }

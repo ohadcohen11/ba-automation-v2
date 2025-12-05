@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { TrendingUp, AlertTriangle, CheckCircle, Clock, User, Zap, Activity, DollarSign, TrendingDown, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
-import { ChangeEvent, AuctionInsightsMetrics, Anomaly, SignificantChange, CampaignMetrics } from "@/lib/google-ads";
+import { ChangeEvent, AuctionInsightsMetrics, Anomaly, SignificantChange, CampaignMetrics, KeywordMetrics } from "@/lib/google-ads";
 import {
   useReactTable,
   getCoreRowModel,
@@ -22,6 +22,7 @@ interface GoogleAdsData {
   auctionInsights: AuctionInsightsMetrics[];
   auctionInsightsReport: any[];
   campaignMetrics: CampaignMetrics[];
+  keywordMetrics: KeywordMetrics[];
   anomalies: Anomaly[];
   significantChanges: SignificantChange[];
 }
@@ -33,7 +34,7 @@ export default function GoogleAdsAnalysisTable({
   const [data, setData] = useState<GoogleAdsData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<"anomalies" | "changes" | "insights" | "metrics">("anomalies");
+  const [activeSection, setActiveSection] = useState<"anomalies" | "changes" | "insights" | "metrics" | "keywords">("anomalies");
   const [sorting, setSorting] = useState<SortingState>([]);
   const [lastFetchKey, setLastFetchKey] = useState<string>("");
 
@@ -88,6 +89,7 @@ export default function GoogleAdsAnalysisTable({
       console.log("  Change History:", result.changeHistory.length, "events");
       console.log("  Auction Insights:", result.auctionInsights.length, "rows");
       console.log("  Campaign Metrics:", result.campaignMetrics.length, "rows");
+      console.log("  Keyword Metrics:", result.keywordMetrics.length, "keywords");
       console.log("  Anomalies:", result.anomalies.length, "detected");
       console.log("  Significant Changes:", result.significantChanges.length, "detected");
 
@@ -231,6 +233,125 @@ export default function GoogleAdsAnalysisTable({
   const campaignMetricsTable = useReactTable({
     data: data?.campaignMetrics || [],
     columns: campaignMetricsColumns,
+    state: {
+      sorting,
+    },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
+
+  // Keyword Metrics table columns
+  const keywordMetricsColumns = useMemo<ColumnDef<KeywordMetrics>[]>(
+    () => [
+      {
+        accessorKey: "keywordText",
+        header: "Keyword",
+        cell: (info) => (
+          <span className="text-xs text-gray-900 font-medium">
+            {info.getValue() as string}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "matchType",
+        header: "Match Type",
+        cell: (info) => (
+          <span className="text-xs text-gray-700">{info.getValue() as string}</span>
+        ),
+      },
+      {
+        accessorKey: "campaignName",
+        header: "Campaign",
+        cell: (info) => (
+          <span className="text-xs text-gray-600 max-w-xs truncate block">
+            {info.getValue() as string}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "qualityScore",
+        header: "QS",
+        cell: (info) => {
+          const score = info.getValue() as number;
+          const color = score >= 7 ? "text-green-600" : score >= 5 ? "text-yellow-600" : "text-red-600";
+          return (
+            <span className={`text-xs font-bold ${color}`}>
+              {score > 0 ? score : "-"}
+            </span>
+          );
+        },
+      },
+      {
+        accessorKey: "impressions",
+        header: "Impr",
+        cell: (info) => (
+          <span className="text-xs text-gray-900">
+            {(info.getValue() as number).toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "clicks",
+        header: "Clicks",
+        cell: (info) => (
+          <span className="text-xs text-gray-900">
+            {(info.getValue() as number).toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "ctr",
+        header: "CTR",
+        cell: (info) => (
+          <span className="text-xs text-purple-600 font-medium">
+            {(info.getValue() as number).toFixed(2)}%
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cost",
+        header: "Cost",
+        cell: (info) => (
+          <span className="text-xs text-gray-900 font-medium">
+            ${(info.getValue() as number).toFixed(2)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "conversions",
+        header: "Conv",
+        cell: (info) => (
+          <span className="text-xs text-gray-900 font-medium">
+            {(info.getValue() as number).toFixed(1)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cpc",
+        header: "CPC",
+        cell: (info) => (
+          <span className="text-xs text-blue-600 font-medium">
+            ${(info.getValue() as number).toFixed(2)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cvr",
+        header: "CVR",
+        cell: (info) => (
+          <span className="text-xs text-green-600 font-medium">
+            {((info.getValue() as number) * 100).toFixed(2)}%
+          </span>
+        ),
+      },
+    ],
+    []
+  );
+
+  const keywordMetricsTable = useReactTable({
+    data: data?.keywordMetrics || [],
+    columns: keywordMetricsColumns,
     state: {
       sorting,
     },
@@ -396,6 +517,22 @@ export default function GoogleAdsAnalysisTable({
               <span>Campaign Metrics</span>
               <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-700 text-[10px]">
                 {data.campaignMetrics.length}
+              </span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveSection("keywords")}
+            className={`py-3 px-2 text-xs font-medium border-b-2 transition-colors ${
+              activeSection === "keywords"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <div className="flex items-center space-x-1.5">
+              <DollarSign className="w-3.5 h-3.5" />
+              <span>Keywords</span>
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-700 text-[10px]">
+                {data.keywordMetrics.length}
               </span>
             </div>
           </button>
@@ -622,6 +759,71 @@ export default function GoogleAdsAnalysisTable({
               </table>
               <div className="mt-3 text-xs text-gray-500 text-center">
                 Showing {campaignMetricsTable.getRowModel().rows.length} of {data.campaignMetrics.length} rows
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Keywords Section */}
+      {activeSection === "keywords" && (
+        <div className="p-4">
+          {data.keywordMetrics.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
+              <p className="text-sm">No keyword metrics available</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  {keywordMetricsTable.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <th
+                          key={header.id}
+                          className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <span>
+                              {flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                            </span>
+                            <span className="text-gray-400">
+                              {header.column.getIsSorted() === "asc" ? (
+                                <ArrowUp className="w-3 h-3" />
+                              ) : header.column.getIsSorted() === "desc" ? (
+                                <ArrowDown className="w-3 h-3" />
+                              ) : (
+                                <ChevronsUpDown className="w-3 h-3" />
+                              )}
+                            </span>
+                          </div>
+                        </th>
+                      ))}
+                    </tr>
+                  ))}
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {keywordMetricsTable.getRowModel().rows.map((row) => (
+                    <tr key={row.id} className="hover:bg-gray-50">
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="px-3 py-2 whitespace-nowrap">
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="mt-3 text-xs text-gray-500 text-center">
+                Showing {keywordMetricsTable.getRowModel().rows.length} of {data.keywordMetrics.length} keywords
               </div>
             </div>
           )}

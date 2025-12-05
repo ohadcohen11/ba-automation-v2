@@ -4,11 +4,13 @@ import {
   fetchAuctionInsights,
   fetchAuctionInsightsReport,
   fetchCampaignMetrics,
+  fetchKeywordMetrics,
   detectAnomalies,
   detectSignificantChanges,
   ChangeEvent,
   AuctionInsightsMetrics,
   CampaignMetrics,
+  KeywordMetrics,
   Anomaly,
   SignificantChange,
 } from '@/lib/google-ads';
@@ -18,6 +20,7 @@ export interface GoogleAdsAnalysisResult {
   auctionInsights: AuctionInsightsMetrics[];
   auctionInsightsReport: any[];
   campaignMetrics: CampaignMetrics[];
+  keywordMetrics: KeywordMetrics[];
   anomalies: Anomaly[];
   significantChanges: SignificantChange[];
   targetDate: string;
@@ -85,6 +88,7 @@ export async function POST(request: NextRequest) {
       auctionInsights,
       auctionInsightsReport,
       campaignMetrics,
+      keywordMetrics,
       anomalies,
       significantChanges
     ] = await Promise.allSettled([
@@ -92,6 +96,7 @@ export async function POST(request: NextRequest) {
       fetchAuctionInsights(startDate, endDate),
       fetchAuctionInsightsReport(startDate, endDate),
       fetchCampaignMetrics(startDate, endDate),
+      fetchKeywordMetrics(startDate, endDate),
       detectAnomalies(startDate, endDate, baselineStartDate, baselineEndDate),
       detectSignificantChanges(startDate, endDate),
     ]);
@@ -101,6 +106,7 @@ export async function POST(request: NextRequest) {
     console.log(`  Auction Insights: ${auctionInsights.status === 'fulfilled' ? auctionInsights.value.length + ' rows' : 'FAILED - ' + auctionInsights.reason}`);
     console.log(`  Auction Insights Report: ${auctionInsightsReport.status === 'fulfilled' ? auctionInsightsReport.value.length + ' rows' : 'FAILED - ' + auctionInsightsReport.reason}`);
     console.log(`  Campaign Metrics: ${campaignMetrics.status === 'fulfilled' ? campaignMetrics.value.length + ' rows' : 'FAILED - ' + campaignMetrics.reason}`);
+    console.log(`  Keyword Metrics: ${keywordMetrics.status === 'fulfilled' ? keywordMetrics.value.length + ' keywords' : 'FAILED - ' + keywordMetrics.reason}`);
     console.log(`  Anomalies: ${anomalies.status === 'fulfilled' ? anomalies.value.length + ' detected' : 'FAILED - ' + anomalies.reason}`);
     console.log(`  Significant Changes: ${significantChanges.status === 'fulfilled' ? significantChanges.value.length + ' detected' : 'FAILED - ' + significantChanges.reason}`);
 
@@ -109,6 +115,7 @@ export async function POST(request: NextRequest) {
       auctionInsights: auctionInsights.status === 'fulfilled' ? auctionInsights.value : [],
       auctionInsightsReport: auctionInsightsReport.status === 'fulfilled' ? auctionInsightsReport.value : [],
       campaignMetrics: campaignMetrics.status === 'fulfilled' ? campaignMetrics.value : [],
+      keywordMetrics: keywordMetrics.status === 'fulfilled' ? keywordMetrics.value : [],
       anomalies: anomalies.status === 'fulfilled' ? anomalies.value : [],
       significantChanges: significantChanges.status === 'fulfilled' ? significantChanges.value : [],
       targetDate,
@@ -127,6 +134,9 @@ export async function POST(request: NextRequest) {
     }
     if (campaignMetrics.status === 'rejected') {
       console.error('Campaign metrics fetch failed:', campaignMetrics.reason);
+    }
+    if (keywordMetrics.status === 'rejected') {
+      console.error('Keyword metrics fetch failed:', keywordMetrics.reason);
     }
     if (anomalies.status === 'rejected') {
       console.error('Anomaly detection failed:', anomalies.reason);
