@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { History, TrendingUp, AlertTriangle, CheckCircle, Clock, User, Zap, Activity, DollarSign, TrendingDown, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
+import { TrendingUp, AlertTriangle, CheckCircle, Clock, User, Zap, Activity, DollarSign, TrendingDown, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 import { ChangeEvent, AuctionInsightsMetrics, Anomaly, SignificantChange, CampaignMetrics } from "@/lib/google-ads";
 import {
   useReactTable,
@@ -35,10 +35,18 @@ export default function GoogleAdsAnalysisTable({
   const [error, setError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<"anomalies" | "changes" | "insights" | "metrics">("anomalies");
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [lastFetchKey, setLastFetchKey] = useState<string>("");
 
   useEffect(() => {
-    fetchGoogleAdsData();
-  }, [targetDate, lookbackDays]);
+    // Create a cache key based on targetDate and lookbackDays
+    const cacheKey = `${targetDate}-${lookbackDays}`;
+
+    // Only fetch if the cache key has changed (prevents refetching on tab switches)
+    if (cacheKey !== lastFetchKey) {
+      fetchGoogleAdsData();
+      setLastFetchKey(cacheKey);
+    }
+  }, [targetDate, lookbackDays, lastFetchKey]);
 
   const fetchGoogleAdsData = async () => {
     setLoading(true);
@@ -100,14 +108,6 @@ export default function GoogleAdsAnalysisTable({
       hour: "2-digit",
       minute: "2-digit",
     }).format(date);
-  };
-
-  const getChangeTypeColor = (type: string) => {
-    if (type.includes("BID")) return "text-orange-600 bg-orange-50";
-    if (type.includes("BUDGET")) return "text-purple-600 bg-purple-50";
-    if (type.includes("STATUS")) return "text-blue-600 bg-blue-50";
-    if (type.includes("KEYWORD")) return "text-green-600 bg-green-50";
-    return "text-gray-600 bg-gray-50";
   };
 
   const getImpressionShareColor = (value: number) => {
@@ -314,6 +314,34 @@ export default function GoogleAdsAnalysisTable({
             </span>
           </div>
         )}
+
+        {/* Quick Summary Stats */}
+        {data.anomalies.length > 0 && (
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {data.anomalies.slice(0, 3).map((anomaly, idx) => (
+              <div
+                key={idx}
+                className={`rounded-lg p-2.5 border ${getSeverityColor(anomaly.severity)}`}
+              >
+                <div className="text-[10px] font-semibold opacity-75 mb-0.5">
+                  {anomaly.metric}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold">{anomaly.current}</span>
+                  <div className={`flex items-center space-x-0.5 text-xs font-semibold ${
+                    anomaly.changePercent > 0 ? "text-red-700" : "text-green-700"
+                  }`}>
+                    {anomaly.changePercent > 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                    <span>{Math.abs(anomaly.changePercent).toFixed(1)}%</span>
+                  </div>
+                </div>
+                <div className="text-[9px] opacity-60 mt-0.5">
+                  vs baseline: {anomaly.baseline}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Section Tabs */}
@@ -429,14 +457,24 @@ export default function GoogleAdsAnalysisTable({
                         </div>
                         <div className="bg-white bg-opacity-50 rounded p-2">
                           <div className="text-[10px] font-medium opacity-75 mb-0.5">Current</div>
-                          <div className="text-sm font-bold">{anomaly.current}</div>
+                          <div className="text-sm font-bold flex items-center space-x-1">
+                            <span>{anomaly.current}</span>
+                            {anomaly.changePercent !== 0 && (
+                              <span className={`${
+                                anomaly.changePercent > 0 ? "text-red-600" : "text-green-600"
+                              }`}>
+                                {anomaly.changePercent > 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="bg-white bg-opacity-50 rounded p-2">
                           <div className="text-[10px] font-medium opacity-75 mb-0.5">Change</div>
-                          <div className={`text-sm font-bold ${
+                          <div className={`text-sm font-bold flex items-center space-x-1 ${
                             anomaly.changePercent > 0 ? "text-red-700" : "text-green-700"
                           }`}>
-                            {anomaly.changePercent > 0 ? "+" : ""}{anomaly.changePercent.toFixed(1)}%
+                            {anomaly.changePercent > 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                            <span>{anomaly.changePercent > 0 ? "+" : ""}{anomaly.changePercent.toFixed(1)}%</span>
                           </div>
                         </div>
                       </div>
