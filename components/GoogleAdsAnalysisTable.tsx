@@ -516,7 +516,7 @@ export default function GoogleAdsAnalysisTable({
         header: "Headlines",
         cell: (info) => (
           <span className="text-xs text-gray-800 max-w-md truncate block">
-            {(info.getValue() as string[]).join(" | ")}
+            {info.getValue() as string}
           </span>
         ),
       },
@@ -602,8 +602,8 @@ export default function GoogleAdsAnalysisTable({
   const geoMetricsColumns = useMemo<ColumnDef<GeoMetrics>[]>(
     () => [
       {
-        accessorKey: "locationName",
-        header: "Location",
+        accessorKey: "country",
+        header: "Country",
         cell: (info) => (
           <span className="text-xs text-gray-900 font-medium">
             {info.getValue() as string}
@@ -611,11 +611,20 @@ export default function GoogleAdsAnalysisTable({
         ),
       },
       {
-        accessorKey: "locationType",
-        header: "Type",
+        accessorKey: "region",
+        header: "Region",
         cell: (info) => (
           <span className="text-xs text-gray-700">
             {info.getValue() as string}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "city",
+        header: "City",
+        cell: (info) => (
+          <span className="text-xs text-gray-700">
+            {(info.getValue() as string) || '-'}
           </span>
         ),
       },
@@ -701,7 +710,7 @@ export default function GoogleAdsAnalysisTable({
   const timeMetricsColumns = useMemo<ColumnDef<TimeMetrics>[]>(
     () => [
       {
-        accessorKey: "hourOfDay",
+        accessorKey: "hour",
         header: "Hour",
         cell: (info) => (
           <span className="text-xs text-gray-900 font-medium">
@@ -712,14 +721,11 @@ export default function GoogleAdsAnalysisTable({
       {
         accessorKey: "dayOfWeek",
         header: "Day",
-        cell: (info) => {
-          const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-          return (
-            <span className="text-xs text-gray-700">
-              {days[info.getValue() as number]}
-            </span>
-          );
-        },
+        cell: (info) => (
+          <span className="text-xs text-gray-700">
+            {info.getValue() as string}
+          </span>
+        ),
       },
       {
         accessorKey: "impressions",

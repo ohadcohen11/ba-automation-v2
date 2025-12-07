@@ -403,8 +403,8 @@ export async function fetchAuctionInsights(
  * This provides competitive metrics including overlap rate
  */
 export async function fetchAuctionInsightsReport(
-  startDate: string,
-  endDate: string
+  _startDate: string,
+  _endDate: string
 ): Promise<any[]> {
   try {
     // Note: auction_insight_search_term_view fields are not available in v22 API
