@@ -5,12 +5,22 @@ import {
   fetchAuctionInsightsReport,
   fetchCampaignMetrics,
   fetchKeywordMetrics,
+  fetchSearchTerms,
+  fetchAdMetrics,
+  fetchGeoMetrics,
+  fetchTimeMetrics,
+  fetchDemographics,
   detectAnomalies,
   detectSignificantChanges,
   ChangeEvent,
   AuctionInsightsMetrics,
   CampaignMetrics,
   KeywordMetrics,
+  SearchTermMetrics,
+  AdMetrics,
+  GeoMetrics,
+  TimeMetrics,
+  DemographicMetrics,
   Anomaly,
   SignificantChange,
 } from '@/lib/google-ads';
@@ -21,6 +31,11 @@ export interface GoogleAdsAnalysisResult {
   auctionInsightsReport: any[];
   campaignMetrics: CampaignMetrics[];
   keywordMetrics: KeywordMetrics[];
+  searchTerms: SearchTermMetrics[];
+  adMetrics: AdMetrics[];
+  geoMetrics: GeoMetrics[];
+  timeMetrics: TimeMetrics[];
+  demographics: DemographicMetrics[];
   anomalies: Anomaly[];
   significantChanges: SignificantChange[];
   targetDate: string;
@@ -89,6 +104,11 @@ export async function POST(request: NextRequest) {
       auctionInsightsReport,
       campaignMetrics,
       keywordMetrics,
+      searchTerms,
+      adMetrics,
+      geoMetrics,
+      timeMetrics,
+      demographics,
       anomalies,
       significantChanges
     ] = await Promise.allSettled([
@@ -97,6 +117,11 @@ export async function POST(request: NextRequest) {
       fetchAuctionInsightsReport(startDate, endDate),
       fetchCampaignMetrics(startDate, endDate),
       fetchKeywordMetrics(startDate, endDate),
+      fetchSearchTerms(startDate, endDate),
+      fetchAdMetrics(startDate, endDate),
+      fetchGeoMetrics(startDate, endDate),
+      fetchTimeMetrics(startDate, endDate),
+      fetchDemographics(startDate, endDate),
       detectAnomalies(startDate, endDate, baselineStartDate, baselineEndDate),
       detectSignificantChanges(startDate, endDate),
     ]);
@@ -107,6 +132,11 @@ export async function POST(request: NextRequest) {
     console.log(`  Auction Insights Report: ${auctionInsightsReport.status === 'fulfilled' ? auctionInsightsReport.value.length + ' rows' : 'FAILED - ' + auctionInsightsReport.reason}`);
     console.log(`  Campaign Metrics: ${campaignMetrics.status === 'fulfilled' ? campaignMetrics.value.length + ' rows' : 'FAILED - ' + campaignMetrics.reason}`);
     console.log(`  Keyword Metrics: ${keywordMetrics.status === 'fulfilled' ? keywordMetrics.value.length + ' keywords' : 'FAILED - ' + keywordMetrics.reason}`);
+    console.log(`  Search Terms: ${searchTerms.status === 'fulfilled' ? searchTerms.value.length + ' terms' : 'FAILED - ' + searchTerms.reason}`);
+    console.log(`  Ad Metrics: ${adMetrics.status === 'fulfilled' ? adMetrics.value.length + ' ads' : 'FAILED - ' + adMetrics.reason}`);
+    console.log(`  Geographic Metrics: ${geoMetrics.status === 'fulfilled' ? geoMetrics.value.length + ' locations' : 'FAILED - ' + geoMetrics.reason}`);
+    console.log(`  Time Metrics: ${timeMetrics.status === 'fulfilled' ? timeMetrics.value.length + ' time periods' : 'FAILED - ' + timeMetrics.reason}`);
+    console.log(`  Demographics: ${demographics.status === 'fulfilled' ? demographics.value.length + ' segments' : 'FAILED - ' + demographics.reason}`);
     console.log(`  Anomalies: ${anomalies.status === 'fulfilled' ? anomalies.value.length + ' detected' : 'FAILED - ' + anomalies.reason}`);
     console.log(`  Significant Changes: ${significantChanges.status === 'fulfilled' ? significantChanges.value.length + ' detected' : 'FAILED - ' + significantChanges.reason}`);
 
@@ -116,6 +146,11 @@ export async function POST(request: NextRequest) {
       auctionInsightsReport: auctionInsightsReport.status === 'fulfilled' ? auctionInsightsReport.value : [],
       campaignMetrics: campaignMetrics.status === 'fulfilled' ? campaignMetrics.value : [],
       keywordMetrics: keywordMetrics.status === 'fulfilled' ? keywordMetrics.value : [],
+      searchTerms: searchTerms.status === 'fulfilled' ? searchTerms.value : [],
+      adMetrics: adMetrics.status === 'fulfilled' ? adMetrics.value : [],
+      geoMetrics: geoMetrics.status === 'fulfilled' ? geoMetrics.value : [],
+      timeMetrics: timeMetrics.status === 'fulfilled' ? timeMetrics.value : [],
+      demographics: demographics.status === 'fulfilled' ? demographics.value : [],
       anomalies: anomalies.status === 'fulfilled' ? anomalies.value : [],
       significantChanges: significantChanges.status === 'fulfilled' ? significantChanges.value : [],
       targetDate,
@@ -137,6 +172,21 @@ export async function POST(request: NextRequest) {
     }
     if (keywordMetrics.status === 'rejected') {
       console.error('Keyword metrics fetch failed:', keywordMetrics.reason);
+    }
+    if (searchTerms.status === 'rejected') {
+      console.error('Search terms fetch failed:', searchTerms.reason);
+    }
+    if (adMetrics.status === 'rejected') {
+      console.error('Ad metrics fetch failed:', adMetrics.reason);
+    }
+    if (geoMetrics.status === 'rejected') {
+      console.error('Geographic metrics fetch failed:', geoMetrics.reason);
+    }
+    if (timeMetrics.status === 'rejected') {
+      console.error('Time metrics fetch failed:', timeMetrics.reason);
+    }
+    if (demographics.status === 'rejected') {
+      console.error('Demographics fetch failed:', demographics.reason);
     }
     if (anomalies.status === 'rejected') {
       console.error('Anomaly detection failed:', anomalies.reason);

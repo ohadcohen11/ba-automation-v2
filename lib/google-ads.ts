@@ -159,6 +159,85 @@ export interface KeywordMetrics {
   status: string;
 }
 
+// Search Terms Types (actual user queries)
+export interface SearchTermMetrics {
+  searchTerm: string;
+  matchType: string;
+  keywordText: string;
+  campaignName: string;
+  adGroupName: string;
+  impressions: number;
+  clicks: number;
+  cost: number;
+  conversions: number;
+  cpc: number;
+  cvr: number;
+  ctr: number;
+  addedAsNegative: boolean;
+}
+
+// Ad Performance Types
+export interface AdMetrics {
+  adId: string;
+  adType: string;
+  headlines: string;
+  descriptions: string;
+  campaignName: string;
+  adGroupName: string;
+  status: string;
+  impressions: number;
+  clicks: number;
+  cost: number;
+  conversions: number;
+  cpc: number;
+  cvr: number;
+  ctr: number;
+}
+
+// Geographic Performance Types
+export interface GeoMetrics {
+  country: string;
+  region: string;
+  city: string;
+  campaignName: string;
+  impressions: number;
+  clicks: number;
+  cost: number;
+  conversions: number;
+  cpc: number;
+  cvr: number;
+  ctr: number;
+}
+
+// Time Performance Types
+export interface TimeMetrics {
+  date: string;
+  hour: number;
+  dayOfWeek: string;
+  campaignName: string;
+  impressions: number;
+  clicks: number;
+  cost: number;
+  conversions: number;
+  cpc: number;
+  cvr: number;
+  ctr: number;
+}
+
+// Demographics Types
+export interface DemographicMetrics {
+  ageRange: string;
+  gender: string;
+  campaignName: string;
+  impressions: number;
+  clicks: number;
+  cost: number;
+  conversions: number;
+  cpc: number;
+  cvr: number;
+  ctr: number;
+}
+
 // Anomaly Types
 export interface Anomaly {
   metric: string;
@@ -784,5 +863,307 @@ export async function fetchKeywordMetrics(
   } catch (error) {
     console.error('Error fetching keyword metrics:', error);
     throw new Error(`Failed to fetch keyword metrics: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * Fetch Search Terms (actual user queries)
+ * Shows what users actually searched for vs what you bid on
+ */
+export async function fetchSearchTerms(
+  startDate: string,
+  endDate: string
+): Promise<SearchTermMetrics[]> {
+  try {
+    const query = `
+      SELECT
+        search_term_view.search_term,
+        search_term_view.status,
+        ad_group_criterion.keyword.text,
+        ad_group_criterion.keyword.match_type,
+        campaign.name,
+        ad_group.name,
+        metrics.impressions,
+        metrics.clicks,
+        metrics.cost_micros,
+        metrics.conversions,
+        metrics.ctr
+      FROM search_term_view
+      WHERE segments.date >= '${startDate}'
+        AND segments.date <= '${endDate}'
+      ORDER BY metrics.cost_micros DESC
+      LIMIT 500
+    `;
+
+    const response = await executeQuery(query);
+
+    const searchTerms: SearchTermMetrics[] = response.map((row: any) => {
+      const cost = parseFloat(row.metrics?.costMicros || 0) / 1000000;
+      const clicks = parseInt(row.metrics?.clicks || 0);
+      const conversions = parseFloat(row.metrics?.conversions || 0);
+      const impressions = parseInt(row.metrics?.impressions || 0);
+
+      return {
+        searchTerm: row.searchTermView?.searchTerm || '',
+        matchType: row.adGroupCriterion?.keyword?.matchType || '',
+        keywordText: row.adGroupCriterion?.keyword?.text || '',
+        campaignName: row.campaign?.name || '',
+        adGroupName: row.adGroup?.name || '',
+        impressions,
+        clicks,
+        cost,
+        conversions,
+        cpc: clicks > 0 ? cost / clicks : 0,
+        cvr: clicks > 0 ? conversions / clicks : 0,
+        ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
+        addedAsNegative: row.searchTermView?.status === 'ADDED',
+      };
+    });
+
+    return searchTerms;
+  } catch (error) {
+    console.error('Error fetching search terms:', error);
+    throw new Error(`Failed to fetch search terms: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * Fetch Ad Performance
+ * Shows which ad creatives perform best
+ */
+export async function fetchAdMetrics(
+  startDate: string,
+  endDate: string
+): Promise<AdMetrics[]> {
+  try {
+    const query = `
+      SELECT
+        ad_group_ad.ad.id,
+        ad_group_ad.ad.type,
+        ad_group_ad.ad.responsive_search_ad.headlines,
+        ad_group_ad.ad.responsive_search_ad.descriptions,
+        ad_group_ad.status,
+        campaign.name,
+        ad_group.name,
+        metrics.impressions,
+        metrics.clicks,
+        metrics.cost_micros,
+        metrics.conversions,
+        metrics.ctr
+      FROM ad_group_ad
+      WHERE segments.date >= '${startDate}'
+        AND segments.date <= '${endDate}'
+        AND ad_group_ad.status != 'REMOVED'
+      ORDER BY metrics.cost_micros DESC
+      LIMIT 200
+    `;
+
+    const response = await executeQuery(query);
+
+    const ads: AdMetrics[] = response.map((row: any) => {
+      const cost = parseFloat(row.metrics?.costMicros || 0) / 1000000;
+      const clicks = parseInt(row.metrics?.clicks || 0);
+      const conversions = parseFloat(row.metrics?.conversions || 0);
+      const impressions = parseInt(row.metrics?.impressions || 0);
+
+      // Extract headlines and descriptions
+      const headlines = row.adGroupAd?.ad?.responsiveSearchAd?.headlines
+        ?.map((h: any) => h.text)
+        .join(' | ') || '';
+      const descriptions = row.adGroupAd?.ad?.responsiveSearchAd?.descriptions
+        ?.map((d: any) => d.text)
+        .join(' | ') || '';
+
+      return {
+        adId: row.adGroupAd?.ad?.id?.toString() || '',
+        adType: row.adGroupAd?.ad?.type || '',
+        headlines,
+        descriptions,
+        status: row.adGroupAd?.status || '',
+        campaignName: row.campaign?.name || '',
+        adGroupName: row.adGroup?.name || '',
+        impressions,
+        clicks,
+        cost,
+        conversions,
+        cpc: clicks > 0 ? cost / clicks : 0,
+        cvr: clicks > 0 ? conversions / clicks : 0,
+        ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
+      };
+    });
+
+    return ads;
+  } catch (error) {
+    console.error('Error fetching ad metrics:', error);
+    throw new Error(`Failed to fetch ad metrics: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * Fetch Geographic Performance
+ * Shows performance by location
+ */
+export async function fetchGeoMetrics(
+  startDate: string,
+  endDate: string
+): Promise<GeoMetrics[]> {
+  try {
+    const query = `
+      SELECT
+        geographic_view.country_criterion_id,
+        geographic_view.location_type,
+        campaign.name,
+        segments.date,
+        metrics.impressions,
+        metrics.clicks,
+        metrics.cost_micros,
+        metrics.conversions,
+        metrics.ctr
+      FROM geographic_view
+      WHERE segments.date >= '${startDate}'
+        AND segments.date <= '${endDate}'
+      ORDER BY metrics.cost_micros DESC
+      LIMIT 300
+    `;
+
+    const response = await executeQuery(query);
+
+    const geoMetrics: GeoMetrics[] = response.map((row: any) => {
+      const cost = parseFloat(row.metrics?.costMicros || 0) / 1000000;
+      const clicks = parseInt(row.metrics?.clicks || 0);
+      const conversions = parseFloat(row.metrics?.conversions || 0);
+      const impressions = parseInt(row.metrics?.impressions || 0);
+
+      return {
+        country: row.geographicView?.countryCriterionId?.toString() || 'Unknown',
+        region: row.geographicView?.locationType || '',
+        city: '',
+        campaignName: row.campaign?.name || '',
+        impressions,
+        clicks,
+        cost,
+        conversions,
+        cpc: clicks > 0 ? cost / clicks : 0,
+        cvr: clicks > 0 ? conversions / clicks : 0,
+        ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
+      };
+    });
+
+    return geoMetrics;
+  } catch (error) {
+    console.error('Error fetching geo metrics:', error);
+    throw new Error(`Failed to fetch geo metrics: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * Fetch Time Performance
+ * Shows performance by hour and day of week
+ */
+export async function fetchTimeMetrics(
+  startDate: string,
+  endDate: string
+): Promise<TimeMetrics[]> {
+  try {
+    const query = `
+      SELECT
+        segments.date,
+        segments.hour,
+        segments.day_of_week,
+        campaign.name,
+        metrics.impressions,
+        metrics.clicks,
+        metrics.cost_micros,
+        metrics.conversions,
+        metrics.ctr
+      FROM campaign
+      WHERE segments.date >= '${startDate}'
+        AND segments.date <= '${endDate}'
+      ORDER BY segments.date DESC, segments.hour
+      LIMIT 500
+    `;
+
+    const response = await executeQuery(query);
+
+    const timeMetrics: TimeMetrics[] = response.map((row: any) => {
+      const cost = parseFloat(row.metrics?.costMicros || 0) / 1000000;
+      const clicks = parseInt(row.metrics?.clicks || 0);
+      const conversions = parseFloat(row.metrics?.conversions || 0);
+      const impressions = parseInt(row.metrics?.impressions || 0);
+
+      return {
+        date: row.segments?.date || '',
+        hour: parseInt(row.segments?.hour || 0),
+        dayOfWeek: row.segments?.dayOfWeek || '',
+        campaignName: row.campaign?.name || '',
+        impressions,
+        clicks,
+        cost,
+        conversions,
+        cpc: clicks > 0 ? cost / clicks : 0,
+        cvr: clicks > 0 ? conversions / clicks : 0,
+        ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
+      };
+    });
+
+    return timeMetrics;
+  } catch (error) {
+    console.error('Error fetching time metrics:', error);
+    throw new Error(`Failed to fetch time metrics: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * Fetch Demographics
+ * Shows performance by age and gender
+ */
+export async function fetchDemographics(
+  startDate: string,
+  endDate: string
+): Promise<DemographicMetrics[]> {
+  try {
+    const query = `
+      SELECT
+        ad_group_criterion.age_range.type,
+        ad_group_criterion.gender.type,
+        campaign.name,
+        metrics.impressions,
+        metrics.clicks,
+        metrics.cost_micros,
+        metrics.conversions,
+        metrics.ctr
+      FROM age_range_view
+      WHERE segments.date >= '${startDate}'
+        AND segments.date <= '${endDate}'
+      ORDER BY metrics.cost_micros DESC
+      LIMIT 200
+    `;
+
+    const response = await executeQuery(query);
+
+    const demographics: DemographicMetrics[] = response.map((row: any) => {
+      const cost = parseFloat(row.metrics?.costMicros || 0) / 1000000;
+      const clicks = parseInt(row.metrics?.clicks || 0);
+      const conversions = parseFloat(row.metrics?.conversions || 0);
+      const impressions = parseInt(row.metrics?.impressions || 0);
+
+      return {
+        ageRange: row.adGroupCriterion?.ageRange?.type || 'Unknown',
+        gender: row.adGroupCriterion?.gender?.type || 'Unknown',
+        campaignName: row.campaign?.name || '',
+        impressions,
+        clicks,
+        cost,
+        conversions,
+        cpc: clicks > 0 ? cost / clicks : 0,
+        cvr: clicks > 0 ? conversions / clicks : 0,
+        ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
+      };
+    });
+
+    return demographics;
+  } catch (error) {
+    console.error('Error fetching demographics:', error);
+    throw new Error(`Failed to fetch demographics: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { TrendingUp, AlertTriangle, CheckCircle, Clock, User, Zap, Activity, DollarSign, TrendingDown, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
-import { ChangeEvent, AuctionInsightsMetrics, Anomaly, SignificantChange, CampaignMetrics, KeywordMetrics } from "@/lib/google-ads";
+import { TrendingUp, AlertTriangle, CheckCircle, Clock, User, Zap, Activity, DollarSign, TrendingDown, ArrowUp, ArrowDown, ChevronsUpDown, Search, FileText, MapPin, Calendar, Users } from "lucide-react";
+import { ChangeEvent, AuctionInsightsMetrics, Anomaly, SignificantChange, CampaignMetrics, KeywordMetrics, SearchTermMetrics, AdMetrics, GeoMetrics, TimeMetrics, DemographicMetrics } from "@/lib/google-ads";
 import {
   useReactTable,
   getCoreRowModel,
@@ -23,6 +23,11 @@ interface GoogleAdsData {
   auctionInsightsReport: any[];
   campaignMetrics: CampaignMetrics[];
   keywordMetrics: KeywordMetrics[];
+  searchTerms: SearchTermMetrics[];
+  adMetrics: AdMetrics[];
+  geoMetrics: GeoMetrics[];
+  timeMetrics: TimeMetrics[];
+  demographics: DemographicMetrics[];
   anomalies: Anomaly[];
   significantChanges: SignificantChange[];
 }
@@ -34,7 +39,10 @@ export default function GoogleAdsAnalysisTable({
   const [data, setData] = useState<GoogleAdsData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<"anomalies" | "changes" | "insights" | "metrics" | "keywords">("anomalies");
+  const [activeSection, setActiveSection] = useState<
+    "anomalies" | "changes" | "insights" | "metrics" | "keywords" |
+    "search_terms" | "ads" | "geo" | "time" | "demographics"
+  >("anomalies");
   const [sorting, setSorting] = useState<SortingState>([]);
   const [lastFetchKey, setLastFetchKey] = useState<string>("");
 
@@ -90,6 +98,11 @@ export default function GoogleAdsAnalysisTable({
       console.log("  Auction Insights:", result.auctionInsights.length, "rows");
       console.log("  Campaign Metrics:", result.campaignMetrics.length, "rows");
       console.log("  Keyword Metrics:", result.keywordMetrics.length, "keywords");
+      console.log("  Search Terms:", result.searchTerms.length, "terms");
+      console.log("  Ad Metrics:", result.adMetrics.length, "ads");
+      console.log("  Geographic Metrics:", result.geoMetrics.length, "locations");
+      console.log("  Time Metrics:", result.timeMetrics.length, "time periods");
+      console.log("  Demographics:", result.demographics.length, "segments");
       console.log("  Anomalies:", result.anomalies.length, "detected");
       console.log("  Significant Changes:", result.significantChanges.length, "detected");
 
@@ -360,6 +373,531 @@ export default function GoogleAdsAnalysisTable({
     getSortedRowModel: getSortedRowModel(),
   });
 
+  // Search Terms table columns
+  const searchTermsColumns = useMemo<ColumnDef<SearchTermMetrics>[]>(
+    () => [
+      {
+        accessorKey: "searchTerm",
+        header: "Search Term",
+        cell: (info) => (
+          <span className="text-xs text-gray-900 font-medium">
+            {info.getValue() as string}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "keywordText",
+        header: "Matched Keyword",
+        cell: (info) => (
+          <span className="text-xs text-gray-600">
+            {info.getValue() as string}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "campaignName",
+        header: "Campaign",
+        cell: (info) => (
+          <span className="text-xs text-gray-600 max-w-xs truncate block">
+            {info.getValue() as string}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "impressions",
+        header: "Impr",
+        cell: (info) => (
+          <span className="text-xs text-gray-900">
+            {(info.getValue() as number).toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "clicks",
+        header: "Clicks",
+        cell: (info) => (
+          <span className="text-xs text-gray-900">
+            {(info.getValue() as number).toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "ctr",
+        header: "CTR",
+        cell: (info) => (
+          <span className="text-xs text-purple-600 font-medium">
+            {(info.getValue() as number).toFixed(2)}%
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cost",
+        header: "Cost",
+        cell: (info) => (
+          <span className="text-xs text-gray-900 font-medium">
+            ${(info.getValue() as number).toFixed(2)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "conversions",
+        header: "Conv",
+        cell: (info) => (
+          <span className="text-xs text-gray-900 font-medium">
+            {(info.getValue() as number).toFixed(1)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cpc",
+        header: "CPC",
+        cell: (info) => (
+          <span className="text-xs text-blue-600 font-medium">
+            ${(info.getValue() as number).toFixed(2)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cvr",
+        header: "CVR",
+        cell: (info) => (
+          <span className="text-xs text-green-600 font-medium">
+            {((info.getValue() as number) * 100).toFixed(2)}%
+          </span>
+        ),
+      },
+    ],
+    []
+  );
+
+  const searchTermsTable = useReactTable({
+    data: data?.searchTerms || [],
+    columns: searchTermsColumns,
+    state: {
+      sorting,
+    },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
+
+  // Ad Metrics table columns
+  const adMetricsColumns = useMemo<ColumnDef<AdMetrics>[]>(
+    () => [
+      {
+        accessorKey: "adId",
+        header: "Ad ID",
+        cell: (info) => (
+          <span className="text-xs text-gray-700 font-mono">
+            {info.getValue() as string}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "adType",
+        header: "Type",
+        cell: (info) => (
+          <span className="text-xs text-gray-700">
+            {info.getValue() as string}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "campaignName",
+        header: "Campaign",
+        cell: (info) => (
+          <span className="text-xs text-gray-600 max-w-xs truncate block">
+            {info.getValue() as string}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "headlines",
+        header: "Headlines",
+        cell: (info) => (
+          <span className="text-xs text-gray-800 max-w-md truncate block">
+            {(info.getValue() as string[]).join(" | ")}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "impressions",
+        header: "Impr",
+        cell: (info) => (
+          <span className="text-xs text-gray-900">
+            {(info.getValue() as number).toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "clicks",
+        header: "Clicks",
+        cell: (info) => (
+          <span className="text-xs text-gray-900">
+            {(info.getValue() as number).toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "ctr",
+        header: "CTR",
+        cell: (info) => (
+          <span className="text-xs text-purple-600 font-medium">
+            {(info.getValue() as number).toFixed(2)}%
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cost",
+        header: "Cost",
+        cell: (info) => (
+          <span className="text-xs text-gray-900 font-medium">
+            ${(info.getValue() as number).toFixed(2)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "conversions",
+        header: "Conv",
+        cell: (info) => (
+          <span className="text-xs text-gray-900 font-medium">
+            {(info.getValue() as number).toFixed(1)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cpc",
+        header: "CPC",
+        cell: (info) => (
+          <span className="text-xs text-blue-600 font-medium">
+            ${(info.getValue() as number).toFixed(2)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cvr",
+        header: "CVR",
+        cell: (info) => (
+          <span className="text-xs text-green-600 font-medium">
+            {((info.getValue() as number) * 100).toFixed(2)}%
+          </span>
+        ),
+      },
+    ],
+    []
+  );
+
+  const adMetricsTable = useReactTable({
+    data: data?.adMetrics || [],
+    columns: adMetricsColumns,
+    state: {
+      sorting,
+    },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
+
+  // Geographic Metrics table columns
+  const geoMetricsColumns = useMemo<ColumnDef<GeoMetrics>[]>(
+    () => [
+      {
+        accessorKey: "locationName",
+        header: "Location",
+        cell: (info) => (
+          <span className="text-xs text-gray-900 font-medium">
+            {info.getValue() as string}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "locationType",
+        header: "Type",
+        cell: (info) => (
+          <span className="text-xs text-gray-700">
+            {info.getValue() as string}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "impressions",
+        header: "Impressions",
+        cell: (info) => (
+          <span className="text-xs text-gray-900">
+            {(info.getValue() as number).toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "clicks",
+        header: "Clicks",
+        cell: (info) => (
+          <span className="text-xs text-gray-900">
+            {(info.getValue() as number).toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "ctr",
+        header: "CTR",
+        cell: (info) => (
+          <span className="text-xs text-purple-600 font-medium">
+            {(info.getValue() as number).toFixed(2)}%
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cost",
+        header: "Cost",
+        cell: (info) => (
+          <span className="text-xs text-gray-900 font-medium">
+            ${(info.getValue() as number).toFixed(2)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "conversions",
+        header: "Conversions",
+        cell: (info) => (
+          <span className="text-xs text-gray-900 font-medium">
+            {(info.getValue() as number).toFixed(1)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cpc",
+        header: "CPC",
+        cell: (info) => (
+          <span className="text-xs text-blue-600 font-medium">
+            ${(info.getValue() as number).toFixed(2)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cvr",
+        header: "CVR",
+        cell: (info) => (
+          <span className="text-xs text-green-600 font-medium">
+            {((info.getValue() as number) * 100).toFixed(2)}%
+          </span>
+        ),
+      },
+    ],
+    []
+  );
+
+  const geoMetricsTable = useReactTable({
+    data: data?.geoMetrics || [],
+    columns: geoMetricsColumns,
+    state: {
+      sorting,
+    },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
+
+  // Time Metrics table columns
+  const timeMetricsColumns = useMemo<ColumnDef<TimeMetrics>[]>(
+    () => [
+      {
+        accessorKey: "hourOfDay",
+        header: "Hour",
+        cell: (info) => (
+          <span className="text-xs text-gray-900 font-medium">
+            {info.getValue() as number}:00
+          </span>
+        ),
+      },
+      {
+        accessorKey: "dayOfWeek",
+        header: "Day",
+        cell: (info) => {
+          const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+          return (
+            <span className="text-xs text-gray-700">
+              {days[info.getValue() as number]}
+            </span>
+          );
+        },
+      },
+      {
+        accessorKey: "impressions",
+        header: "Impressions",
+        cell: (info) => (
+          <span className="text-xs text-gray-900">
+            {(info.getValue() as number).toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "clicks",
+        header: "Clicks",
+        cell: (info) => (
+          <span className="text-xs text-gray-900">
+            {(info.getValue() as number).toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "ctr",
+        header: "CTR",
+        cell: (info) => (
+          <span className="text-xs text-purple-600 font-medium">
+            {(info.getValue() as number).toFixed(2)}%
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cost",
+        header: "Cost",
+        cell: (info) => (
+          <span className="text-xs text-gray-900 font-medium">
+            ${(info.getValue() as number).toFixed(2)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "conversions",
+        header: "Conversions",
+        cell: (info) => (
+          <span className="text-xs text-gray-900 font-medium">
+            {(info.getValue() as number).toFixed(1)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cpc",
+        header: "CPC",
+        cell: (info) => (
+          <span className="text-xs text-blue-600 font-medium">
+            ${(info.getValue() as number).toFixed(2)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cvr",
+        header: "CVR",
+        cell: (info) => (
+          <span className="text-xs text-green-600 font-medium">
+            {((info.getValue() as number) * 100).toFixed(2)}%
+          </span>
+        ),
+      },
+    ],
+    []
+  );
+
+  const timeMetricsTable = useReactTable({
+    data: data?.timeMetrics || [],
+    columns: timeMetricsColumns,
+    state: {
+      sorting,
+    },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
+
+  // Demographics table columns
+  const demographicsColumns = useMemo<ColumnDef<DemographicMetrics>[]>(
+    () => [
+      {
+        accessorKey: "ageRange",
+        header: "Age Range",
+        cell: (info) => (
+          <span className="text-xs text-gray-900 font-medium">
+            {info.getValue() as string}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "gender",
+        header: "Gender",
+        cell: (info) => (
+          <span className="text-xs text-gray-700">
+            {info.getValue() as string}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "impressions",
+        header: "Impressions",
+        cell: (info) => (
+          <span className="text-xs text-gray-900">
+            {(info.getValue() as number).toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "clicks",
+        header: "Clicks",
+        cell: (info) => (
+          <span className="text-xs text-gray-900">
+            {(info.getValue() as number).toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "ctr",
+        header: "CTR",
+        cell: (info) => (
+          <span className="text-xs text-purple-600 font-medium">
+            {(info.getValue() as number).toFixed(2)}%
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cost",
+        header: "Cost",
+        cell: (info) => (
+          <span className="text-xs text-gray-900 font-medium">
+            ${(info.getValue() as number).toFixed(2)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "conversions",
+        header: "Conversions",
+        cell: (info) => (
+          <span className="text-xs text-gray-900 font-medium">
+            {(info.getValue() as number).toFixed(1)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cpc",
+        header: "CPC",
+        cell: (info) => (
+          <span className="text-xs text-blue-600 font-medium">
+            ${(info.getValue() as number).toFixed(2)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "cvr",
+        header: "CVR",
+        cell: (info) => (
+          <span className="text-xs text-green-600 font-medium">
+            {((info.getValue() as number) * 100).toFixed(2)}%
+          </span>
+        ),
+      },
+    ],
+    []
+  );
+
+  const demographicsTable = useReactTable({
+    data: data?.demographics || [],
+    columns: demographicsColumns,
+    state: {
+      sorting,
+    },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
+
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow border border-gray-200 p-8">
@@ -533,6 +1071,86 @@ export default function GoogleAdsAnalysisTable({
               <span>Keywords</span>
               <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-700 text-[10px]">
                 {data.keywordMetrics.length}
+              </span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveSection("search_terms")}
+            className={`py-3 px-2 text-xs font-medium border-b-2 transition-colors ${
+              activeSection === "search_terms"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <div className="flex items-center space-x-1.5">
+              <Search className="w-3.5 h-3.5" />
+              <span>Search Terms</span>
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-700 text-[10px]">
+                {data.searchTerms.length}
+              </span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveSection("ads")}
+            className={`py-3 px-2 text-xs font-medium border-b-2 transition-colors ${
+              activeSection === "ads"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <div className="flex items-center space-x-1.5">
+              <FileText className="w-3.5 h-3.5" />
+              <span>Ads</span>
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-700 text-[10px]">
+                {data.adMetrics.length}
+              </span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveSection("geo")}
+            className={`py-3 px-2 text-xs font-medium border-b-2 transition-colors ${
+              activeSection === "geo"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <div className="flex items-center space-x-1.5">
+              <MapPin className="w-3.5 h-3.5" />
+              <span>Geographic</span>
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-700 text-[10px]">
+                {data.geoMetrics.length}
+              </span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveSection("time")}
+            className={`py-3 px-2 text-xs font-medium border-b-2 transition-colors ${
+              activeSection === "time"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <div className="flex items-center space-x-1.5">
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Time</span>
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-700 text-[10px]">
+                {data.timeMetrics.length}
+              </span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveSection("demographics")}
+            className={`py-3 px-2 text-xs font-medium border-b-2 transition-colors ${
+              activeSection === "demographics"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <div className="flex items-center space-x-1.5">
+              <Users className="w-3.5 h-3.5" />
+              <span>Demographics</span>
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-700 text-[10px]">
+                {data.demographics.length}
               </span>
             </div>
           </button>
@@ -824,6 +1442,331 @@ export default function GoogleAdsAnalysisTable({
               </table>
               <div className="mt-3 text-xs text-gray-500 text-center">
                 Showing {keywordMetricsTable.getRowModel().rows.length} of {data.keywordMetrics.length} keywords
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Search Terms Section */}
+      {activeSection === "search_terms" && (
+        <div className="p-4">
+          {data.searchTerms.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
+              <p className="text-sm">No search terms available</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  {searchTermsTable.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <th
+                          key={header.id}
+                          className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <span>
+                              {flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                            </span>
+                            <span className="text-gray-400">
+                              {header.column.getIsSorted() === "asc" ? (
+                                <ArrowUp className="w-3 h-3" />
+                              ) : header.column.getIsSorted() === "desc" ? (
+                                <ArrowDown className="w-3 h-3" />
+                              ) : (
+                                <ChevronsUpDown className="w-3 h-3" />
+                              )}
+                            </span>
+                          </div>
+                        </th>
+                      ))}
+                    </tr>
+                  ))}
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {searchTermsTable.getRowModel().rows.map((row) => (
+                    <tr key={row.id} className="hover:bg-gray-50">
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="px-3 py-2 whitespace-nowrap">
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="mt-3 text-xs text-gray-500 text-center">
+                Showing {searchTermsTable.getRowModel().rows.length} of {data.searchTerms.length} search terms
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Ads Section */}
+      {activeSection === "ads" && (
+        <div className="p-4">
+          {data.adMetrics.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
+              <p className="text-sm">No ad metrics available</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  {adMetricsTable.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <th
+                          key={header.id}
+                          className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <span>
+                              {flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                            </span>
+                            <span className="text-gray-400">
+                              {header.column.getIsSorted() === "asc" ? (
+                                <ArrowUp className="w-3 h-3" />
+                              ) : header.column.getIsSorted() === "desc" ? (
+                                <ArrowDown className="w-3 h-3" />
+                              ) : (
+                                <ChevronsUpDown className="w-3 h-3" />
+                              )}
+                            </span>
+                          </div>
+                        </th>
+                      ))}
+                    </tr>
+                  ))}
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {adMetricsTable.getRowModel().rows.map((row) => (
+                    <tr key={row.id} className="hover:bg-gray-50">
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="px-3 py-2 whitespace-nowrap">
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="mt-3 text-xs text-gray-500 text-center">
+                Showing {adMetricsTable.getRowModel().rows.length} of {data.adMetrics.length} ads
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Geographic Section */}
+      {activeSection === "geo" && (
+        <div className="p-4">
+          {data.geoMetrics.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
+              <p className="text-sm">No geographic metrics available</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  {geoMetricsTable.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <th
+                          key={header.id}
+                          className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <span>
+                              {flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                            </span>
+                            <span className="text-gray-400">
+                              {header.column.getIsSorted() === "asc" ? (
+                                <ArrowUp className="w-3 h-3" />
+                              ) : header.column.getIsSorted() === "desc" ? (
+                                <ArrowDown className="w-3 h-3" />
+                              ) : (
+                                <ChevronsUpDown className="w-3 h-3" />
+                              )}
+                            </span>
+                          </div>
+                        </th>
+                      ))}
+                    </tr>
+                  ))}
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {geoMetricsTable.getRowModel().rows.map((row) => (
+                    <tr key={row.id} className="hover:bg-gray-50">
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="px-3 py-2 whitespace-nowrap">
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="mt-3 text-xs text-gray-500 text-center">
+                Showing {geoMetricsTable.getRowModel().rows.length} of {data.geoMetrics.length} locations
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Time Section */}
+      {activeSection === "time" && (
+        <div className="p-4">
+          {data.timeMetrics.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
+              <p className="text-sm">No time metrics available</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  {timeMetricsTable.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <th
+                          key={header.id}
+                          className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <span>
+                              {flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                            </span>
+                            <span className="text-gray-400">
+                              {header.column.getIsSorted() === "asc" ? (
+                                <ArrowUp className="w-3 h-3" />
+                              ) : header.column.getIsSorted() === "desc" ? (
+                                <ArrowDown className="w-3 h-3" />
+                              ) : (
+                                <ChevronsUpDown className="w-3 h-3" />
+                              )}
+                            </span>
+                          </div>
+                        </th>
+                      ))}
+                    </tr>
+                  ))}
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {timeMetricsTable.getRowModel().rows.map((row) => (
+                    <tr key={row.id} className="hover:bg-gray-50">
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="px-3 py-2 whitespace-nowrap">
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="mt-3 text-xs text-gray-500 text-center">
+                Showing {timeMetricsTable.getRowModel().rows.length} of {data.timeMetrics.length} time periods
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Demographics Section */}
+      {activeSection === "demographics" && (
+        <div className="p-4">
+          {data.demographics.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
+              <p className="text-sm">No demographics data available</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  {demographicsTable.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <th
+                          key={header.id}
+                          className="px-3 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <span>
+                              {flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                            </span>
+                            <span className="text-gray-400">
+                              {header.column.getIsSorted() === "asc" ? (
+                                <ArrowUp className="w-3 h-3" />
+                              ) : header.column.getIsSorted() === "desc" ? (
+                                <ArrowDown className="w-3 h-3" />
+                              ) : (
+                                <ChevronsUpDown className="w-3 h-3" />
+                              )}
+                            </span>
+                          </div>
+                        </th>
+                      ))}
+                    </tr>
+                  ))}
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {demographicsTable.getRowModel().rows.map((row) => (
+                    <tr key={row.id} className="hover:bg-gray-50">
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="px-3 py-2 whitespace-nowrap">
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="mt-3 text-xs text-gray-500 text-center">
+                Showing {demographicsTable.getRowModel().rows.length} of {data.demographics.length} demographic segments
               </div>
             </div>
           )}
