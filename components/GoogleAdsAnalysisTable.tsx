@@ -22,12 +22,19 @@ interface GoogleAdsData {
   auctionInsights: AuctionInsightsMetrics[];
   auctionInsightsReport: any[];
   campaignMetrics: CampaignMetrics[];
+  campaignMetricsBaseline: CampaignMetrics[];
   keywordMetrics: KeywordMetrics[];
+  keywordMetricsBaseline: KeywordMetrics[];
   searchTerms: SearchTermMetrics[];
+  searchTermsBaseline: SearchTermMetrics[];
   adMetrics: AdMetrics[];
+  adMetricsBaseline: AdMetrics[];
   geoMetrics: GeoMetrics[];
+  geoMetricsBaseline: GeoMetrics[];
   timeMetrics: TimeMetrics[];
+  timeMetricsBaseline: TimeMetrics[];
   demographics: DemographicMetrics[];
+  demographicsBaseline: DemographicMetrics[];
   anomalies: Anomaly[];
   significantChanges: SignificantChange[];
 }
@@ -45,6 +52,95 @@ export default function GoogleAdsAnalysisTable({
   >("anomalies");
   const [sorting, setSorting] = useState<SortingState>([]);
   const [lastFetchKey, setLastFetchKey] = useState<string>("");
+
+  // Helper function to aggregate metrics by a key and calculate comparison
+  const aggregateMetrics = <T extends Record<string, any>>(
+    current: T[],
+    baseline: T[],
+    groupKey: keyof T,
+    metricsToSum: (keyof T)[]
+  ): Map<string, { current: Record<string, number>, baseline: Record<string, number>, changes: Record<string, number> }> => {
+    const result = new Map();
+
+    // Aggregate current period
+    current.forEach(item => {
+      const key = String(item[groupKey]);
+      if (!result.has(key)) {
+        result.set(key, { current: {}, baseline: {}, changes: {} });
+      }
+      const entry = result.get(key)!;
+      metricsToSum.forEach(metric => {
+        entry.current[String(metric)] = (entry.current[String(metric)] || 0) + (Number(item[metric]) || 0);
+      });
+    });
+
+    // Aggregate baseline period
+    baseline.forEach(item => {
+      const key = String(item[groupKey]);
+      if (!result.has(key)) {
+        result.set(key, { current: {}, baseline: {}, changes: {} });
+      }
+      const entry = result.get(key)!;
+      metricsToSum.forEach(metric => {
+        entry.baseline[String(metric)] = (entry.baseline[String(metric)] || 0) + (Number(item[metric]) || 0);
+      });
+    });
+
+    // Calculate changes
+    result.forEach((entry, key) => {
+      metricsToSum.forEach(metric => {
+        const metricStr = String(metric);
+        const curr = entry.current[metricStr] || 0;
+        const base = entry.baseline[metricStr] || 0;
+        entry.changes[metricStr] = base > 0 ? ((curr - base) / base) * 100 : 0;
+      });
+    });
+
+    return result;
+  };
+
+  // Helper to format percentage change with color
+  const formatChange = (changePercent: number) => {
+    const color = changePercent > 0 ? "text-green-600" : changePercent < 0 ? "text-red-600" : "text-gray-600";
+    const icon = changePercent > 0 ? <ArrowUp className="w-3 h-3" /> : changePercent < 0 ? <ArrowDown className="w-3 h-3" /> : null;
+    return { color, icon, text: `${changePercent > 0 ? '+' : ''}${changePercent.toFixed(1)}%` };
+  };
+
+  // Component to show metric comparison summary
+  const MetricComparisonSummary = ({
+    current,
+    baseline,
+    label
+  }: {
+    current: number,
+    baseline: number,
+    label: string
+  }) => {
+    const change = baseline > 0 ? ((current - baseline) / baseline) * 100 : 0;
+    const formatted = formatChange(change);
+
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-3">
+        <div className="text-[10px] text-gray-600 font-semibold uppercase mb-1">{label}</div>
+        <div className="flex items-center justify-between">
+          <div className="text-lg font-bold text-gray-900">
+            {label.includes('Cost') || label.includes('CPC') ? `$${current.toFixed(2)}` : current.toLocaleString()}
+          </div>
+          {baseline > 0 && (
+            <div className={`flex items-center space-x-0.5 text-xs font-semibold ${formatted.color}`}>
+              {formatted.icon}
+              <span>{formatted.text}</span>
+            </div>
+          )}
+        </div>
+        {baseline > 0 && (
+          <div className="text-[9px] text-gray-500 mt-0.5">
+            vs baseline: {label.includes('Cost') || label.includes('CPC') ? `$${baseline.toFixed(2)}` : baseline.toLocaleString()}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   useEffect(() => {
     // Create a cache key based on targetDate and lookbackDays
@@ -1333,7 +1429,47 @@ export default function GoogleAdsAnalysisTable({
               <p className="text-sm">No campaign metrics available</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              {/* Comparison Summary */}
+              {data.campaignMetricsBaseline.length > 0 && (
+                <div className="mb-4 grid grid-cols-5 gap-3">
+                  <MetricComparisonSummary
+                    current={data.campaignMetrics.reduce((sum, m) => sum + m.impressions, 0)}
+                    baseline={data.campaignMetricsBaseline.reduce((sum, m) => sum + m.impressions, 0)}
+                    label="Total Impressions"
+                  />
+                  <MetricComparisonSummary
+                    current={data.campaignMetrics.reduce((sum, m) => sum + m.clicks, 0)}
+                    baseline={data.campaignMetricsBaseline.reduce((sum, m) => sum + m.clicks, 0)}
+                    label="Total Clicks"
+                  />
+                  <MetricComparisonSummary
+                    current={data.campaignMetrics.reduce((sum, m) => sum + m.cost, 0)}
+                    baseline={data.campaignMetricsBaseline.reduce((sum, m) => sum + m.cost, 0)}
+                    label="Total Cost"
+                  />
+                  <MetricComparisonSummary
+                    current={data.campaignMetrics.reduce((sum, m) => sum + m.conversions, 0)}
+                    baseline={data.campaignMetricsBaseline.reduce((sum, m) => sum + m.conversions, 0)}
+                    label="Total Conversions"
+                  />
+                  <MetricComparisonSummary
+                    current={
+                      data.campaignMetrics.reduce((sum, m) => sum + m.clicks, 0) > 0
+                        ? data.campaignMetrics.reduce((sum, m) => sum + m.cost, 0) / data.campaignMetrics.reduce((sum, m) => sum + m.clicks, 0)
+                        : 0
+                    }
+                    baseline={
+                      data.campaignMetricsBaseline.reduce((sum, m) => sum + m.clicks, 0) > 0
+                        ? data.campaignMetricsBaseline.reduce((sum, m) => sum + m.cost, 0) / data.campaignMetricsBaseline.reduce((sum, m) => sum + m.clicks, 0)
+                        : 0
+                    }
+                    label="Average CPC"
+                  />
+                </div>
+              )}
+
+              <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   {campaignMetricsTable.getHeaderGroups().map((headerGroup) => (
@@ -1385,6 +1521,7 @@ export default function GoogleAdsAnalysisTable({
                 Showing {campaignMetricsTable.getRowModel().rows.length} of {data.campaignMetrics.length} rows
               </div>
             </div>
+            </>
           )}
         </div>
       )}

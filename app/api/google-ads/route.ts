@@ -30,12 +30,19 @@ export interface GoogleAdsAnalysisResult {
   auctionInsights: AuctionInsightsMetrics[];
   auctionInsightsReport: any[];
   campaignMetrics: CampaignMetrics[];
+  campaignMetricsBaseline: CampaignMetrics[];
   keywordMetrics: KeywordMetrics[];
+  keywordMetricsBaseline: KeywordMetrics[];
   searchTerms: SearchTermMetrics[];
+  searchTermsBaseline: SearchTermMetrics[];
   adMetrics: AdMetrics[];
+  adMetricsBaseline: AdMetrics[];
   geoMetrics: GeoMetrics[];
+  geoMetricsBaseline: GeoMetrics[];
   timeMetrics: TimeMetrics[];
+  timeMetricsBaseline: TimeMetrics[];
   demographics: DemographicMetrics[];
+  demographicsBaseline: DemographicMetrics[];
   anomalies: Anomaly[];
   significantChanges: SignificantChange[];
   targetDate: string;
@@ -97,18 +104,25 @@ export async function POST(request: NextRequest) {
     console.log(`  Baseline Period: ${baselineStartDate} to ${baselineEndDate}`);
     console.log(`  Customer ID: ${process.env.GOOGLE_ADS_CUSTOMER_ID}`);
 
-    // Fetch all data in parallel
+    // Fetch all data in parallel - both current and baseline periods
     const [
       changeHistory,
       auctionInsights,
       auctionInsightsReport,
       campaignMetrics,
+      campaignMetricsBaseline,
       keywordMetrics,
+      keywordMetricsBaseline,
       searchTerms,
+      searchTermsBaseline,
       adMetrics,
+      adMetricsBaseline,
       geoMetrics,
+      geoMetricsBaseline,
       timeMetrics,
+      timeMetricsBaseline,
       demographics,
+      demographicsBaseline,
       anomalies,
       significantChanges
     ] = await Promise.allSettled([
@@ -116,12 +130,19 @@ export async function POST(request: NextRequest) {
       fetchAuctionInsights(startDate, endDate),
       fetchAuctionInsightsReport(startDate, endDate),
       fetchCampaignMetrics(startDate, endDate),
+      fetchCampaignMetrics(baselineStartDate, baselineEndDate),
       fetchKeywordMetrics(startDate, endDate),
+      fetchKeywordMetrics(baselineStartDate, baselineEndDate),
       fetchSearchTerms(startDate, endDate),
+      fetchSearchTerms(baselineStartDate, baselineEndDate),
       fetchAdMetrics(startDate, endDate),
+      fetchAdMetrics(baselineStartDate, baselineEndDate),
       fetchGeoMetrics(startDate, endDate),
+      fetchGeoMetrics(baselineStartDate, baselineEndDate),
       fetchTimeMetrics(startDate, endDate),
+      fetchTimeMetrics(baselineStartDate, baselineEndDate),
       fetchDemographics(startDate, endDate),
+      fetchDemographics(baselineStartDate, baselineEndDate),
       detectAnomalies(startDate, endDate, baselineStartDate, baselineEndDate),
       detectSignificantChanges(startDate, endDate),
     ]);
@@ -130,13 +151,20 @@ export async function POST(request: NextRequest) {
     console.log(`  Change History: ${changeHistory.status === 'fulfilled' ? changeHistory.value.length + ' events' : 'FAILED - ' + changeHistory.reason}`);
     console.log(`  Auction Insights: ${auctionInsights.status === 'fulfilled' ? auctionInsights.value.length + ' rows' : 'FAILED - ' + auctionInsights.reason}`);
     console.log(`  Auction Insights Report: ${auctionInsightsReport.status === 'fulfilled' ? auctionInsightsReport.value.length + ' rows' : 'FAILED - ' + auctionInsightsReport.reason}`);
-    console.log(`  Campaign Metrics: ${campaignMetrics.status === 'fulfilled' ? campaignMetrics.value.length + ' rows' : 'FAILED - ' + campaignMetrics.reason}`);
-    console.log(`  Keyword Metrics: ${keywordMetrics.status === 'fulfilled' ? keywordMetrics.value.length + ' keywords' : 'FAILED - ' + keywordMetrics.reason}`);
-    console.log(`  Search Terms: ${searchTerms.status === 'fulfilled' ? searchTerms.value.length + ' terms' : 'FAILED - ' + searchTerms.reason}`);
-    console.log(`  Ad Metrics: ${adMetrics.status === 'fulfilled' ? adMetrics.value.length + ' ads' : 'FAILED - ' + adMetrics.reason}`);
-    console.log(`  Geographic Metrics: ${geoMetrics.status === 'fulfilled' ? geoMetrics.value.length + ' locations' : 'FAILED - ' + geoMetrics.reason}`);
-    console.log(`  Time Metrics: ${timeMetrics.status === 'fulfilled' ? timeMetrics.value.length + ' time periods' : 'FAILED - ' + timeMetrics.reason}`);
-    console.log(`  Demographics: ${demographics.status === 'fulfilled' ? demographics.value.length + ' segments' : 'FAILED - ' + demographics.reason}`);
+    console.log(`  Campaign Metrics (Current): ${campaignMetrics.status === 'fulfilled' ? campaignMetrics.value.length + ' rows' : 'FAILED - ' + campaignMetrics.reason}`);
+    console.log(`  Campaign Metrics (Baseline): ${campaignMetricsBaseline.status === 'fulfilled' ? campaignMetricsBaseline.value.length + ' rows' : 'FAILED - ' + campaignMetricsBaseline.reason}`);
+    console.log(`  Keyword Metrics (Current): ${keywordMetrics.status === 'fulfilled' ? keywordMetrics.value.length + ' keywords' : 'FAILED - ' + keywordMetrics.reason}`);
+    console.log(`  Keyword Metrics (Baseline): ${keywordMetricsBaseline.status === 'fulfilled' ? keywordMetricsBaseline.value.length + ' keywords' : 'FAILED - ' + keywordMetricsBaseline.reason}`);
+    console.log(`  Search Terms (Current): ${searchTerms.status === 'fulfilled' ? searchTerms.value.length + ' terms' : 'FAILED - ' + searchTerms.reason}`);
+    console.log(`  Search Terms (Baseline): ${searchTermsBaseline.status === 'fulfilled' ? searchTermsBaseline.value.length + ' terms' : 'FAILED - ' + searchTermsBaseline.reason}`);
+    console.log(`  Ad Metrics (Current): ${adMetrics.status === 'fulfilled' ? adMetrics.value.length + ' ads' : 'FAILED - ' + adMetrics.reason}`);
+    console.log(`  Ad Metrics (Baseline): ${adMetricsBaseline.status === 'fulfilled' ? adMetricsBaseline.value.length + ' ads' : 'FAILED - ' + adMetricsBaseline.reason}`);
+    console.log(`  Geographic Metrics (Current): ${geoMetrics.status === 'fulfilled' ? geoMetrics.value.length + ' locations' : 'FAILED - ' + geoMetrics.reason}`);
+    console.log(`  Geographic Metrics (Baseline): ${geoMetricsBaseline.status === 'fulfilled' ? geoMetricsBaseline.value.length + ' locations' : 'FAILED - ' + geoMetricsBaseline.reason}`);
+    console.log(`  Time Metrics (Current): ${timeMetrics.status === 'fulfilled' ? timeMetrics.value.length + ' time periods' : 'FAILED - ' + timeMetrics.reason}`);
+    console.log(`  Time Metrics (Baseline): ${timeMetricsBaseline.status === 'fulfilled' ? timeMetricsBaseline.value.length + ' time periods' : 'FAILED - ' + timeMetricsBaseline.reason}`);
+    console.log(`  Demographics (Current): ${demographics.status === 'fulfilled' ? demographics.value.length + ' segments' : 'FAILED - ' + demographics.reason}`);
+    console.log(`  Demographics (Baseline): ${demographicsBaseline.status === 'fulfilled' ? demographicsBaseline.value.length + ' segments' : 'FAILED - ' + demographicsBaseline.reason}`);
     console.log(`  Anomalies: ${anomalies.status === 'fulfilled' ? anomalies.value.length + ' detected' : 'FAILED - ' + anomalies.reason}`);
     console.log(`  Significant Changes: ${significantChanges.status === 'fulfilled' ? significantChanges.value.length + ' detected' : 'FAILED - ' + significantChanges.reason}`);
 
@@ -145,12 +173,19 @@ export async function POST(request: NextRequest) {
       auctionInsights: auctionInsights.status === 'fulfilled' ? auctionInsights.value : [],
       auctionInsightsReport: auctionInsightsReport.status === 'fulfilled' ? auctionInsightsReport.value : [],
       campaignMetrics: campaignMetrics.status === 'fulfilled' ? campaignMetrics.value : [],
+      campaignMetricsBaseline: campaignMetricsBaseline.status === 'fulfilled' ? campaignMetricsBaseline.value : [],
       keywordMetrics: keywordMetrics.status === 'fulfilled' ? keywordMetrics.value : [],
+      keywordMetricsBaseline: keywordMetricsBaseline.status === 'fulfilled' ? keywordMetricsBaseline.value : [],
       searchTerms: searchTerms.status === 'fulfilled' ? searchTerms.value : [],
+      searchTermsBaseline: searchTermsBaseline.status === 'fulfilled' ? searchTermsBaseline.value : [],
       adMetrics: adMetrics.status === 'fulfilled' ? adMetrics.value : [],
+      adMetricsBaseline: adMetricsBaseline.status === 'fulfilled' ? adMetricsBaseline.value : [],
       geoMetrics: geoMetrics.status === 'fulfilled' ? geoMetrics.value : [],
+      geoMetricsBaseline: geoMetricsBaseline.status === 'fulfilled' ? geoMetricsBaseline.value : [],
       timeMetrics: timeMetrics.status === 'fulfilled' ? timeMetrics.value : [],
+      timeMetricsBaseline: timeMetricsBaseline.status === 'fulfilled' ? timeMetricsBaseline.value : [],
       demographics: demographics.status === 'fulfilled' ? demographics.value : [],
+      demographicsBaseline: demographicsBaseline.status === 'fulfilled' ? demographicsBaseline.value : [],
       anomalies: anomalies.status === 'fulfilled' ? anomalies.value : [],
       significantChanges: significantChanges.status === 'fulfilled' ? significantChanges.value : [],
       targetDate,
@@ -168,25 +203,46 @@ export async function POST(request: NextRequest) {
       console.error('Auction insights report fetch failed:', auctionInsightsReport.reason);
     }
     if (campaignMetrics.status === 'rejected') {
-      console.error('Campaign metrics fetch failed:', campaignMetrics.reason);
+      console.error('Campaign metrics (current) fetch failed:', campaignMetrics.reason);
+    }
+    if (campaignMetricsBaseline.status === 'rejected') {
+      console.error('Campaign metrics (baseline) fetch failed:', campaignMetricsBaseline.reason);
     }
     if (keywordMetrics.status === 'rejected') {
-      console.error('Keyword metrics fetch failed:', keywordMetrics.reason);
+      console.error('Keyword metrics (current) fetch failed:', keywordMetrics.reason);
+    }
+    if (keywordMetricsBaseline.status === 'rejected') {
+      console.error('Keyword metrics (baseline) fetch failed:', keywordMetricsBaseline.reason);
     }
     if (searchTerms.status === 'rejected') {
-      console.error('Search terms fetch failed:', searchTerms.reason);
+      console.error('Search terms (current) fetch failed:', searchTerms.reason);
+    }
+    if (searchTermsBaseline.status === 'rejected') {
+      console.error('Search terms (baseline) fetch failed:', searchTermsBaseline.reason);
     }
     if (adMetrics.status === 'rejected') {
-      console.error('Ad metrics fetch failed:', adMetrics.reason);
+      console.error('Ad metrics (current) fetch failed:', adMetrics.reason);
+    }
+    if (adMetricsBaseline.status === 'rejected') {
+      console.error('Ad metrics (baseline) fetch failed:', adMetricsBaseline.reason);
     }
     if (geoMetrics.status === 'rejected') {
-      console.error('Geographic metrics fetch failed:', geoMetrics.reason);
+      console.error('Geographic metrics (current) fetch failed:', geoMetrics.reason);
+    }
+    if (geoMetricsBaseline.status === 'rejected') {
+      console.error('Geographic metrics (baseline) fetch failed:', geoMetricsBaseline.reason);
     }
     if (timeMetrics.status === 'rejected') {
-      console.error('Time metrics fetch failed:', timeMetrics.reason);
+      console.error('Time metrics (current) fetch failed:', timeMetrics.reason);
+    }
+    if (timeMetricsBaseline.status === 'rejected') {
+      console.error('Time metrics (baseline) fetch failed:', timeMetricsBaseline.reason);
     }
     if (demographics.status === 'rejected') {
-      console.error('Demographics fetch failed:', demographics.reason);
+      console.error('Demographics (current) fetch failed:', demographics.reason);
+    }
+    if (demographicsBaseline.status === 'rejected') {
+      console.error('Demographics (baseline) fetch failed:', demographicsBaseline.reason);
     }
     if (anomalies.status === 'rejected') {
       console.error('Anomaly detection failed:', anomalies.reason);
