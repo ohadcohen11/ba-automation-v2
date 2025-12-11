@@ -11,7 +11,8 @@ import EmailReportView from "@/components/EmailReportView";
 import DimensionalAnalysisTable from "@/components/DimensionalAnalysisTable";
 import GoogleAdsAnalysisTable from "@/components/GoogleAdsAnalysisTable";
 import { AnomalyResult } from "@/types";
-import { BarChart3, Table2, AlertCircle, GitBranch, Mail, Monitor, Tag, FileText, Shield, Megaphone, Building2, Globe, Target, Users, Search, ExternalLink } from "lucide-react";
+import { BarChart3, Table2, AlertCircle, GitBranch, Mail, Monitor, Tag, FileText, Shield, Megaphone, Building2, Globe, Target, Users, Search, ExternalLink, Network } from "lucide-react";
+import Link from "next/link";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<
@@ -103,13 +104,22 @@ export default function Home() {
       <AnalysisProgress isAnalyzing={loading} currentStep={progressStep} />
 
       <div className="max-w-[1800px] mx-auto">
-        <header className="mb-4">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">
-            Anomaly Detection Dashboard
-          </h1>
-          <p className="text-gray-600 text-sm">
-            Morning Routine Analysis - Dating Vertical
-          </p>
+        <header className="mb-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">
+              Anomaly Detection Dashboard
+            </h1>
+            <p className="text-gray-600 text-sm">
+              Morning Routine Analysis - Dating Vertical
+            </p>
+          </div>
+          <Link
+            href="/automation-tree"
+            className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm"
+          >
+            <Network className="w-4 h-4" />
+            <span>View Full Automation Tree</span>
+          </Link>
         </header>
 
         <ConfigurationPanel onAnalyze={handleAnalyze} loading={loading} />

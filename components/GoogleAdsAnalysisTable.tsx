@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { TrendingUp, AlertTriangle, CheckCircle, Clock, User, Zap, Activity, DollarSign, TrendingDown, ArrowUp, ArrowDown, ChevronsUpDown, Search, FileText, MapPin, Calendar, Users } from "lucide-react";
+import { TrendingUp, AlertTriangle, CheckCircle, Clock, User, Zap, Activity, DollarSign, TrendingDown, ArrowUp, ArrowDown, ChevronsUpDown, Search, FileText, MapPin, Calendar, Users, Download } from "lucide-react";
 import { ChangeEvent, AuctionInsightsMetrics, Anomaly, SignificantChange, CampaignMetrics, KeywordMetrics, SearchTermMetrics, AdMetrics, GeoMetrics, TimeMetrics, DemographicMetrics } from "@/lib/google-ads";
 import {
   useReactTable,
@@ -104,6 +104,227 @@ export default function GoogleAdsAnalysisTable({
     const color = changePercent > 0 ? "text-green-600" : changePercent < 0 ? "text-red-600" : "text-gray-600";
     const icon = changePercent > 0 ? <ArrowUp className="w-3 h-3" /> : changePercent < 0 ? <ArrowDown className="w-3 h-3" /> : null;
     return { color, icon, text: `${changePercent > 0 ? '+' : ''}${changePercent.toFixed(1)}%` };
+  };
+
+  // Function to download anomalies as HTML
+  const downloadAnomaliesHTML = () => {
+    if (!data || data.anomalies.length === 0) return;
+
+    const startDateObj = new Date(targetDate);
+    startDateObj.setDate(startDateObj.getDate() - lookbackDays);
+    const startDateStr = startDateObj.toISOString().split('T')[0];
+
+    // Generate HTML content
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Ads Anomalies Report - ${targetDate}</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: #f9fafb;
+      padding: 2rem;
+      color: #111827;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+    .header {
+      padding: 1.5rem;
+      border-bottom: 1px solid #e5e7eb;
+      background-color: #ffffff;
+    }
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #111827;
+      margin-bottom: 0.5rem;
+    }
+    .header p {
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+    .content {
+      padding: 1.5rem;
+    }
+    .anomaly-card {
+      border: 1px solid;
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .anomaly-card.critical {
+      background-color: #fef2f2;
+      border-color: #fecaca;
+      color: #dc2626;
+    }
+    .anomaly-card.warning {
+      background-color: #fff7ed;
+      border-color: #fed7aa;
+      color: #ea580c;
+    }
+    .anomaly-card.info {
+      background-color: #eff6ff;
+      border-color: #bfdbfe;
+      color: #2563eb;
+    }
+    .anomaly-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .anomaly-title {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    .severity-badge {
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      font-size: 0.75rem;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .severity-badge.critical {
+      background-color: #fee2e2;
+      color: #991b1b;
+    }
+    .severity-badge.warning {
+      background-color: #ffedd5;
+      color: #9a3412;
+    }
+    .anomaly-description {
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+    .metric-box {
+      background-color: rgba(255, 255, 255, 0.5);
+      border-radius: 0.375rem;
+      padding: 0.75rem;
+    }
+    .metric-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      opacity: 0.75;
+      margin-bottom: 0.25rem;
+    }
+    .metric-value {
+      font-size: 1rem;
+      font-weight: bold;
+    }
+    .metric-change {
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .metric-change.positive {
+      color: #dc2626;
+    }
+    .metric-change.negative {
+      color: #16a34a;
+    }
+    .no-anomalies {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: #6b7280;
+    }
+    .no-anomalies svg {
+      width: 3rem;
+      height: 3rem;
+      margin: 0 auto 1rem;
+      color: #10b981;
+    }
+    .footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid #e5e7eb;
+      background-color: #f9fafb;
+      font-size: 0.75rem;
+      color: #6b7280;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Google Ads Anomalies Report</h1>
+      <p>Date Range: ${startDateStr} to ${targetDate} (${lookbackDays} days)</p>
+      <p>Generated: ${new Date().toLocaleString()}</p>
+    </div>
+    <div class="content">
+      ${data.anomalies.length === 0 ? `
+        <div class="no-anomalies">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p style="font-weight: 500; font-size: 1rem; margin-bottom: 0.5rem;">No anomalies detected</p>
+          <p>All metrics are within expected ranges</p>
+        </div>
+      ` : data.anomalies.map((anomaly) => `
+        <div class="anomaly-card ${anomaly.severity.toLowerCase()}">
+          <div class="anomaly-header">
+            <h3 class="anomaly-title">${anomaly.metric}</h3>
+            <span class="severity-badge ${anomaly.severity.toLowerCase()}">${anomaly.severity}</span>
+          </div>
+          <p class="anomaly-description">${anomaly.description}</p>
+          <div class="metrics-grid">
+            <div class="metric-box">
+              <div class="metric-label">Baseline</div>
+              <div class="metric-value">${anomaly.baseline}</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label">Current</div>
+              <div class="metric-value">${anomaly.current}</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label">Change</div>
+              <div class="metric-value metric-change ${anomaly.changePercent > 0 ? 'positive' : 'negative'}">
+                ${anomaly.changePercent > 0 ? '▲' : '▼'} ${anomaly.changePercent > 0 ? '+' : ''}${anomaly.changePercent.toFixed(1)}%
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="footer">
+      <p>This report was generated from Google Ads data for the period ${startDateStr} to ${targetDate}</p>
+      <p>Total anomalies detected: ${data.anomalies.length}</p>
+    </div>
+  </div>
+</body>
+</html>
+    `.trim();
+
+    // Create blob and download
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `google-ads-anomalies-${targetDate}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // Component to show metric comparison summary
@@ -1278,6 +1499,18 @@ export default function GoogleAdsAnalysisTable({
       {/* Anomalies Section */}
       {activeSection === "anomalies" && (
         <div className="p-4">
+          {/* Download Button */}
+          {data.anomalies.length > 0 && (
+            <div className="mb-4 flex justify-end">
+              <button
+                onClick={downloadAnomaliesHTML}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download HTML Report</span>
+              </button>
+            </div>
+          )}
           {data.anomalies.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-500" />
